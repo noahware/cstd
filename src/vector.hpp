@@ -25,6 +25,14 @@ namespace cstl
 			size_ = size;
 		}
 
+		~vector_t()
+		{
+			discard_elements();
+
+			size_ = 0;
+			max_size_ = 0;
+		}
+
 		[[nodiscard]] pointer begin() noexcept
 		{
 			return elements_;
@@ -113,7 +121,7 @@ namespace cstl
 				pointer const start = begin() + new_size;
 				pointer const end = begin() + size_;
 
-				destroy_elements(start, end);
+				deconstruct_elements(start, end);
 			}
 			else
 			{
@@ -126,6 +134,11 @@ namespace cstl
 			}
 
 			size_ = new_size;
+		}
+
+		void clear()
+		{
+			size_ = 0;
 		}
 
 	protected:
@@ -147,13 +160,13 @@ namespace cstl
 			max_size_ = new_size;
 		}
 
-		void destroy_elements(pointer const start, pointer const end)
+		void deconstruct_elements(pointer const start, pointer const end)
 		{
 			pointer current = start;
 
 			while (current < end)
 			{
-				// todo: implement destroying of non-trivial types
+				// todo: implement deconstructing of non-trivial types
 
 				++current;
 			}
