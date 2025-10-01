@@ -41,5 +41,11 @@
     <ClInclude Include="src\ranges.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\flat_map.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pair.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

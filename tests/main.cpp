@@ -1,17 +1,16 @@
-#include "ranges.hpp"
+#include "flat_map.hpp"
 #include "vector.hpp"
 
 cstl::int32_t main()
 {
-	cstl::vector_t<cstl::int32_t> x(3);
+	cstl::flat_map_t<cstl::uint32_t, const char*> x;
 
-	x[0] = 1;
-	x[1] = 2;
-	x[2] = 4;
+	x[5] = "hello";
+	x[12] = "world";
 
-	const auto it = cstl::ranges::search(x.begin(), x.end(), 4);
+	const char* output = x[5];
 
-	(void)it;
-
+	(void)output;
+		
 	return 0;
 }

@@ -10,10 +10,10 @@ namespace cstl
 	public:
 		using size_type = uint64_t;
 		using value_type = T;
-		using pointer = T*;
-		using const_pointer = const T*;
-		using reference = T&;
-		using const_reference = const T&;
+		using pointer = value_type*;
+		using const_pointer = const value_type*;
+		using reference = value_type&;
+		using const_reference = const value_type&;
 
 		array_t() = default;
 

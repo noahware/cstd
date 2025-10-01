@@ -154,7 +154,9 @@
   <ItemGroup>
     <ClInclude Include="src\array.hpp" />
     <ClInclude Include="src\exception.hpp" />
+    <ClInclude Include="src\flat_map.hpp" />
     <ClInclude Include="src\memory.hpp" />
+    <ClInclude Include="src\pair.hpp" />
     <ClInclude Include="src\ranges.hpp" />
     <ClInclude Include="src\types.hpp" />
     <ClInclude Include="src\vector.hpp" />

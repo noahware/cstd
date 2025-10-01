@@ -11,10 +11,10 @@ namespace cstl
 	public:
 		using size_type = uint64_t;
 		using value_type = T;
-		using pointer = T*;
-		using const_pointer = const T*;
-		using reference = T&;
-		using const_reference = const T&;
+		using pointer = value_type*;
+		using const_pointer = const value_type*;
+		using reference = value_type&;
+		using const_reference = const value_type&;
 
 		vector_t() = default;
 
@@ -53,6 +53,34 @@ namespace cstl
 			return elements_ + size_;
 		}
 
+		[[nodiscard]] pointer front()
+		{
+			CSTL_ASSERT(!empty(), "[vector_t] front() called on an empty vector");
+
+			return begin();
+		}
+
+		[[nodiscard]] const_pointer front() const
+		{
+			CSTL_ASSERT(!empty(), "[vector_t] front() called on an empty vector");
+
+			return begin();
+		}
+
+		[[nodiscard]] pointer back()
+		{
+			CSTL_ASSERT(!empty(), "[vector_t] back() called on an empty vector");
+
+			return end() - 1;
+		}
+
+		[[nodiscard]] const_pointer back() const
+		{
+			CSTL_ASSERT(!empty(), "[vector_t] back() called on an empty vector");
+
+			return end() - 1;
+		}
+
 		[[nodiscard]] reference operator[](const size_type index)
 		{
 			CSTL_ASSERT(index < size_, "[vector_t] attempted to access outside of range of elements");
@@ -75,6 +103,11 @@ namespace cstl
 		[[nodiscard]] size_type max_size() const
 		{
 			return max_size_;
+		}
+
+		[[nodiscard]] pointer data() const
+		{
+			return elements_;
 		}
 
 		void push_back(const_reference value)
@@ -141,13 +174,18 @@ namespace cstl
 			size_ = 0;
 		}
 
+		[[nodiscard]] bool empty() const
+		{
+			return size_ == 0;
+		}
+
 	protected:
 
 		constexpr static size_type growth_factor = 2;
 
 		void grow_elements()
 		{
-			const size_type new_size = max_size_ * growth_factor;
+			const size_type new_size = max_size_ ? max_size_ * growth_factor : 1;
 
 			pointer const new_elements = allocate_elements(new_size);
 
@@ -178,7 +216,7 @@ namespace cstl
 			{
 				// todo: support for non-trivial types
 
-				memory::copy(new_elements, elements_, copy_size * sizeof(T));
+				memory::copy(new_elements, elements_, copy_size * sizeof(value_type));
 			}
 		}
 
@@ -194,9 +232,14 @@ namespace cstl
 
 		static pointer allocate_elements(const size_type new_size)
 		{
-			const size_type new_elements_size = new_size * sizeof(T);
+			if (new_size == 0)
+			{
+				return nullptr;
+			}
 
-			return static_cast<T*>(memory::allocate(new_elements_size));
+			const size_type new_elements_size = new_size * sizeof(value_type);
+
+			return static_cast<pointer>(memory::allocate(new_elements_size));
 		}
 
 		pointer elements_ = nullptr;
