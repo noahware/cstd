@@ -47,5 +47,8 @@
     <ClInclude Include="src\pair.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\initializer_list.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,5 +1,6 @@
 #pragma once
 #include "exception.hpp"
+#include "initializer_list.hpp"
 #include "memory.hpp"
 #include "types.hpp"
 
@@ -23,6 +24,15 @@ namespace cstl
 			reserve(size);
 
 			size_ = size;
+		}
+
+		template <class Y>
+		vector_t(const initializer_list_t<Y> list)
+		{
+			for (const Y& entry : list)
+			{
+				push_back(static_cast<value_type>(entry));
+			}
 		}
 
 		~vector_t()

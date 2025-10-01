@@ -22,6 +22,15 @@ namespace cstl
 
 		flat_map_t() = default;
 
+		template <class Y>
+		flat_map_t(const initializer_list_t<Y> list)
+		{
+			for (const Y& entry : list)
+			{
+				elements_.push_back(static_cast<value_type>(entry));
+			}
+		}
+
 		[[nodiscard]] pointer begin() noexcept
 		{
 			return elements_.data();
