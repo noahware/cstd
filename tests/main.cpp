@@ -1,27 +1,27 @@
-#include "array.hpp"
-#include "memory.hpp"
+#include "vector.hpp"
 
 cstl::int32_t main()
 {
-	cstl::array_t<int, 3> integer_array;
+	cstl::vector_t<cstl::int32_t> x(3);
 
-	for (int& x : integer_array)
+	x[3] = 0; // causes assertion
+
+	x.push_back(0);
+
+	x[3] = 0; // does not cause assertion
+
+	cstl::vector_t<cstl::uint64_t> y;
+
+	y.reserve(5);
+
+	for (cstl::uint64_t i = 0; i < 8; i++)
 	{
-		x = 3;
+		y.push_back(i);
 	}
 
-	integer_array[1] = 0;
+	y.pop_back();
 
-	const cstl::array_t<float, 3> float_array(5.f);
-
-	for (const float& x : float_array)
-	{
-		(void)x;
-	}
-
-	const float first_float = *float_array.begin();
-
-	(void)first_float;
+	y.resize(2);
 
 	return 0;
 }

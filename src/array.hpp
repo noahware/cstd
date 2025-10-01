@@ -1,4 +1,5 @@
 #pragma once
+#include "exception.hpp"
 #include "types.hpp"
 
 namespace cstl
@@ -6,9 +7,6 @@ namespace cstl
 	template <class T, uint64_t Count>
 	class array_t
 	{
-	protected:
-		T elements_[Count];
-
 	public:
 		using size_type = uint64_t;
 		using value_type = T;
@@ -49,11 +47,15 @@ namespace cstl
 
 		[[nodiscard]] reference operator[](const size_type index)
 		{
+			CSTL_ASSERT(index < Count, "[array_t] attempted to access outside of range of elements");
+
 			return elements_[index];
 		}
 
 		[[nodiscard]] const_reference operator[](const size_type index) const
 		{
+			CSTL_ASSERT(index < Count, "[array_t] attempted to access outside of range of elements");
+
 			return elements_[index];
 		}
 
@@ -61,5 +63,8 @@ namespace cstl
 		{
 			return Count;
 		}
+
+	protected:
+		value_type elements_[Count];
 	};
 }

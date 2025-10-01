@@ -8,5 +8,7 @@ namespace cstl
 		void* allocate(uint64_t size);
 
 		void free(void* buffer);
+
+		void copy(void* destination, const void* source, uint64_t size);
 	}
 }
