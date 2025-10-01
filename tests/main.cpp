@@ -1,27 +1,17 @@
+#include "ranges.hpp"
 #include "vector.hpp"
 
 cstl::int32_t main()
 {
 	cstl::vector_t<cstl::int32_t> x(3);
 
-	x[3] = 0; // causes assertion
+	x[0] = 1;
+	x[1] = 2;
+	x[2] = 4;
 
-	x.push_back(0);
+	const auto it = cstl::ranges::search(x.begin(), x.end(), 4);
 
-	x[3] = 0; // does not cause assertion
-
-	cstl::vector_t<cstl::uint64_t> y;
-
-	y.reserve(5);
-
-	for (cstl::uint64_t i = 0; i < 8; i++)
-	{
-		y.push_back(i);
-	}
-
-	y.pop_back();
-
-	y.resize(2);
+	(void)it;
 
 	return 0;
 }
