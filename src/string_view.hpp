@@ -1,6 +1,6 @@
 #pragma once
-#include "exception.hpp"
 #include "crt.hpp"
+#include "exception.hpp"
 
 namespace cstl
 {
@@ -19,7 +19,27 @@ namespace cstl
 
 		explicit base_string_view_t(const_pointer const data, const size_type size)
 				:	data_(data),
-					size_(size) { }
+					size_(size) {}
+
+		[[nodiscard]] pointer begin() noexcept
+		{
+			return data_;
+		}
+
+		[[nodiscard]] pointer end() noexcept
+		{
+			return data_ + size_;
+		}
+
+		[[nodiscard]] const_pointer begin() const noexcept
+		{
+			return data_;
+		}
+
+		[[nodiscard]] const_pointer end() const noexcept
+		{
+			return data_ + size_;
+		}
 
 		[[nodiscard]] reference operator[](const size_type index)
 		{
@@ -65,7 +85,8 @@ namespace cstl
 		string_view_t() = default;
 
 		string_view_t(const_pointer const data)
-				:	base_string_view_t(data, str::length(data)) { }
+			: base_string_view_t(data, str::length(data)) {
+		}
 	};
 
 	class wstring_view_t : base_string_view_t<wchar_t>
@@ -78,6 +99,7 @@ namespace cstl
 		wstring_view_t() = default;
 
 		explicit wstring_view_t(const_pointer const data)
-			: base_string_view_t(data, str::wlength(data)) {}
+			: base_string_view_t(data, str::wlength(data)) {
+		}
 	};
 }
