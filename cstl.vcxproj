@@ -148,7 +148,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\memory.cpp" />
+    <ClCompile Include="src\crt.cpp" />
     <ClCompile Include="tests\main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -156,9 +156,10 @@
     <ClInclude Include="src\exception.hpp" />
     <ClInclude Include="src\flat_map.hpp" />
     <ClInclude Include="src\initializer_list.hpp" />
-    <ClInclude Include="src\memory.hpp" />
+    <ClInclude Include="src\crt.hpp" />
     <ClInclude Include="src\pair.hpp" />
     <ClInclude Include="src\ranges.hpp" />
+    <ClInclude Include="src\string_view.hpp" />
     <ClInclude Include="src\types.hpp" />
     <ClInclude Include="src\vector.hpp" />
   </ItemGroup>

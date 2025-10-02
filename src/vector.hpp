@@ -1,7 +1,7 @@
 #pragma once
 #include "exception.hpp"
 #include "initializer_list.hpp"
-#include "memory.hpp"
+#include "crt.hpp"
 #include "types.hpp"
 
 namespace cstl
@@ -226,7 +226,7 @@ namespace cstl
 			{
 				// todo: support for non-trivial types
 
-				memory::copy(new_elements, elements_, copy_size * sizeof(value_type));
+				mem::copy(new_elements, elements_, copy_size * sizeof(value_type));
 			}
 		}
 
@@ -234,7 +234,7 @@ namespace cstl
 		{
 			if (elements_)
 			{
-				memory::free(elements_);
+				mem::free(elements_);
 
 				elements_ = nullptr;
 			}
@@ -249,7 +249,7 @@ namespace cstl
 
 			const size_type new_elements_size = new_size * sizeof(value_type);
 
-			return static_cast<pointer>(memory::allocate(new_elements_size));
+			return static_cast<pointer>(mem::allocate(new_elements_size));
 		}
 
 		pointer elements_ = nullptr;

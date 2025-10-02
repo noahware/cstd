@@ -18,7 +18,7 @@
     <ClCompile Include="tests\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\memory.cpp">
+    <ClCompile Include="src\crt.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -26,7 +26,7 @@
     <ClInclude Include="src\types.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\memory.hpp">
+    <ClInclude Include="src\crt.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\array.hpp">
@@ -48,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\initializer_list.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\string_view.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
