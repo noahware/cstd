@@ -85,8 +85,7 @@ namespace cstl
 		string_view_t() = default;
 
 		string_view_t(const_pointer const data)
-			: base_string_view_t(data, str::length(data)) {
-		}
+				:	base_string_view_t(data, str::length(data)) {}
 	};
 
 	class wstring_view_t : base_string_view_t<wchar_t>
@@ -98,8 +97,7 @@ namespace cstl
 
 		wstring_view_t() = default;
 
-		explicit wstring_view_t(const_pointer const data)
-			: base_string_view_t(data, str::wlength(data)) {
-		}
+		wstring_view_t(const_pointer const data)
+				:	base_string_view_t(data, str::wlength(data)) {}
 	};
 }
