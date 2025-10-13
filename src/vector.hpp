@@ -35,12 +35,38 @@ namespace cstl
 			}
 		}
 
+		vector_t(const vector_t&) = delete;
+		vector_t & operator=(const vector_t&) = delete;
+
+		vector_t(vector_t&& right) noexcept
+				:	elements_(right.elements_),
+					size_(right.size_),
+					max_size_(right.max_size_)
+		{
+			right.elements_ = nullptr;
+			right.size_ = 0;
+			right.max_size_ = 0;
+		}
+
+		vector_t& operator=(vector_t&& right) noexcept
+		{
+			if (this != &right)
+			{
+				discard_elements();
+
+				elements_ = right.elements_;
+				size_ = right.size_;
+				max_size_ = right.max_size_;
+
+				right.discard_elements();
+			}
+
+			return *this;
+		}
+
 		~vector_t()
 		{
 			discard_elements();
-
-			size_ = 0;
-			max_size_ = 0;
 		}
 
 		[[nodiscard]] pointer begin() noexcept
@@ -243,6 +269,9 @@ namespace cstl
 
 				elements_ = nullptr;
 			}
+
+			size_ = 0;
+			max_size_ = 0;
 		}
 
 		static pointer allocate_elements(const size_type new_size)
