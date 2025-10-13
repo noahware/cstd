@@ -55,6 +55,16 @@ namespace cstl
 			return Count;
 		}
 
+		[[nodiscard]] pointer data() noexcept
+		{
+			return elements;
+		}
+
+		[[nodiscard]] const_pointer data() const noexcept
+		{
+			return elements;
+		}
+
 		value_type elements[Count];
 	};
 }

@@ -105,17 +105,22 @@ namespace cstl
 			return elements_[index];
 		}
 
-		[[nodiscard]] size_type size() const
+		[[nodiscard]] size_type size() const noexcept
 		{
 			return size_;
 		}
 
-		[[nodiscard]] size_type max_size() const
+		[[nodiscard]] size_type max_size() const noexcept
 		{
 			return max_size_;
 		}
 
-		[[nodiscard]] pointer data() const
+		[[nodiscard]] pointer data() noexcept
+		{
+			return elements_;
+		}
+
+		[[nodiscard]] const_pointer data() const noexcept
 		{
 			return elements_;
 		}
@@ -179,12 +184,12 @@ namespace cstl
 			size_ = new_size;
 		}
 
-		void clear()
+		void clear() noexcept
 		{
 			size_ = 0;
 		}
 
-		[[nodiscard]] bool empty() const
+		[[nodiscard]] bool empty() const noexcept
 		{
 			return size_ == 0;
 		}

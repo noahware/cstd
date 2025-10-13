@@ -43,28 +43,28 @@ namespace cstl
 
 		[[nodiscard]] pointer front()
 		{
-			CSTL_ASSERT(!empty(), "[vector_t] front() called on an empty vector");
+			CSTL_ASSERT(!empty(), "[flat_map_t] front() called on an empty flat map");
 
 			return begin();
 		}
 
 		[[nodiscard]] const_pointer front() const
 		{
-			CSTL_ASSERT(!empty(), "[vector_t] front() called on an empty vector");
+			CSTL_ASSERT(!empty(), "[flat_map_t] front() called on an empty flat map");
 
 			return begin();
 		}
 
 		[[nodiscard]] pointer back()
 		{
-			CSTL_ASSERT(!empty(), "[vector_t] back() called on an empty vector");
+			CSTL_ASSERT(!empty(), "[flat_map_t] back() called on an empty flat map");
 
 			return end() - 1;
 		}
 
 		[[nodiscard]] const_pointer back() const
 		{
-			CSTL_ASSERT(!empty(), "[vector_t] back() called on an empty vector");
+			CSTL_ASSERT(!empty(), "[flat_map_t] back() called on an empty flat map");
 
 			return end() - 1;
 		}

@@ -1,5 +1,6 @@
 #pragma once
 #include "crt.hpp"
+#include "vector.hpp"
 #include "exception.hpp"
 
 namespace cstl
@@ -18,66 +19,69 @@ namespace cstl
 		base_string_t() = default;
 
 		explicit base_string_t(const_pointer const data, const size_type size)
-				:	data_(static_cast<pointer>(mem::allocate((size + 1) * sizeof(T)))),
-					size_(size)
+				:	elements_(size + 1)
 		{
-			CSTL_ASSERT(data_ != nullptr, "[base_string_t] unable to allocate memory for string");
+			mem::copy(elements_.data(), data, size * sizeof(T));
 
-			mem::copy(data_, data, (size + 1) * sizeof(T));
+			elements_[size] = T('\0');
 		}
 
 		[[nodiscard]] pointer begin() noexcept
 		{
-			return data_;
+			return elements_.begin();
 		}
 
 		[[nodiscard]] pointer end() noexcept
 		{
-			return data_ + size_;
+			return elements_.begin() + size();
 		}
 
 		[[nodiscard]] const_pointer begin() const noexcept
 		{
-			return data_;
+			return elements_.begin();
 		}
 
 		[[nodiscard]] const_pointer end() const noexcept
 		{
-			return data_ + size_;
+			return elements_.begin() + size();
 		}
 
 		[[nodiscard]] reference operator[](const size_type index)
 		{
-			CSTL_ASSERT(index < size_, "[base_string_t] attempted to access outside of range of data");
+			CSTL_ASSERT(index < size(), "[base_string_t] attempted to access outside of range of data");
 
-			return data_[index];
+			return elements_[index];
 		}
 
 		[[nodiscard]] const_reference operator[](const size_type index) const
 		{
-			CSTL_ASSERT(index < size_, "[base_string_t] attempted to access outside of range of data");
+			CSTL_ASSERT(index < size(), "[base_string_t] attempted to access outside of range of data");
 
-			return data_[index];
+			return elements_[index];
 		}
 
-		[[nodiscard]] const_pointer data() const
+		[[nodiscard]] pointer data() noexcept
 		{
-			return data_;
+			return elements_.data();
+		}
+
+		[[nodiscard]] const_pointer data() const noexcept
+		{
+			return elements_.data();
 		}
 
 		[[nodiscard]] size_type size() const
 		{
-			return size_;
+			return elements_.size() - 1;
 		}
 
 		[[nodiscard]] bool empty() const
 		{
-			return size_ == 0;
+			return size() == 0;
 		}
 
 	private:
-		pointer data_ = nullptr;
-		size_type size_ = 0;
+		vector_t<character_type> elements_;
 	};
 
 	class string_t : public base_string_t<char>
@@ -91,6 +95,9 @@ namespace cstl
 
 		string_t(const_pointer const data)
 				:	base_string_t(data, str::length(data)) {}
+
+		string_t(const_pointer const data, const size_type size)
+				:	base_string_t(data, size) {}
 	};
 
 	class wstring_t : public base_string_t<wchar_t>
@@ -104,5 +111,8 @@ namespace cstl
 
 		wstring_t(const_pointer const data)
 				:	base_string_t(data, str::wlength(data)) {}
+
+		wstring_t(const_pointer const data, const size_type size)
+				:	base_string_t(data, size) {}
 	};
 }
