@@ -88,7 +88,7 @@ namespace cstl
 				:	base_string_view_t(data, str::length(data)) {}
 	};
 
-	class wstring_view_t : base_string_view_t<wchar_t>
+	class wstring_view_t : public base_string_view_t<wchar_t>
 	{
 	public:
 		using character_type = wchar_t;

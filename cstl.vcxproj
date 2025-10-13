@@ -159,6 +159,7 @@
     <ClInclude Include="src\crt.hpp" />
     <ClInclude Include="src\pair.hpp" />
     <ClInclude Include="src\ranges.hpp" />
+    <ClInclude Include="src\string.hpp" />
     <ClInclude Include="src\string_view.hpp" />
     <ClInclude Include="src\types.hpp" />
     <ClInclude Include="src\vector.hpp" />
