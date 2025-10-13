@@ -46,3 +46,23 @@ cstl::int32_t cstl::crt::wcsncmp(const wchar_t* first_str, const wchar_t* second
 {
 	return ::wcsncmp(first_str, second_str, size);
 }
+
+const char* cstl::crt::strchr(const char* str, const char target)
+{
+	return ::strchr(str, target);
+}
+
+const wchar_t* cstl::crt::wcschr(const wchar_t* str, const wchar_t target)
+{
+	return ::wcschr(str, target);
+}
+
+const char* cstl::crt::strstr(const char* const str, const char* const substr)
+{
+	return ::strstr(str, substr);
+}
+
+const wchar_t* cstl::crt::wcsstr(const wchar_t* const str, const wchar_t* const substr)
+{
+	return ::wcsstr(str, substr);
+}
