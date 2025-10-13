@@ -181,7 +181,7 @@ namespace cstl
 				CSTL_ASSERT(new_elements != nullptr, "[vector_t] unable to reserve elements");
 
 				copy_elements(new_elements, size_);
-				discard_elements();
+				free_elements();
 
 				elements_ = new_elements;
 				max_size_ = size;
@@ -233,7 +233,7 @@ namespace cstl
 			CSTL_ASSERT(new_elements != nullptr, "[vector_t] unable to grow elements");
 
 			copy_elements(new_elements, size_);
-			discard_elements();
+			free_elements();
 
 			elements_ = new_elements;
 			max_size_ = new_size;
@@ -261,7 +261,7 @@ namespace cstl
 			}
 		}
 
-		void discard_elements()
+		void free_elements()
 		{
 			if (elements_)
 			{
@@ -269,6 +269,11 @@ namespace cstl
 
 				elements_ = nullptr;
 			}
+		}
+
+		void discard_elements()
+		{
+			free_elements();
 
 			size_ = 0;
 			max_size_ = 0;
