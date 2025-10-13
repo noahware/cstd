@@ -10,5 +10,5 @@ cstl::int32_t main()
 	(void)raw_string;
 	(void)raw_char;
 
-	return 0;
+	return string == "hello world!";
 }

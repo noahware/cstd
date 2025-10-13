@@ -2,6 +2,7 @@
 #include "crt.hpp"
 #include "vector.hpp"
 #include "exception.hpp"
+#include "string_view.hpp"
 
 namespace cstl
 {
@@ -15,6 +16,8 @@ namespace cstl
 		using const_pointer = const character_type*;
 		using reference = character_type&;
 		using const_reference = const character_type&;
+
+		constexpr static size_type npos = static_cast<size_type>(-1);
 
 		base_string_t() = default;
 
@@ -80,7 +83,7 @@ namespace cstl
 			return size() == 0;
 		}
 
-	private:
+	protected:
 		vector_t<character_type> elements_;
 	};
 
@@ -98,6 +101,28 @@ namespace cstl
 
 		string_t(const_pointer const data, const size_type size)
 				:	base_string_t(data, size) {}
+
+		[[nodiscard]] size_type find(const string_view_t& substr, const size_type offset = 0) const
+		{
+			const const_pointer found = crt::strstr(data() + offset, substr.data());
+
+			if (found == nullptr)
+			{
+				return npos;
+			}
+
+			return found - data();
+		}
+
+		[[nodiscard]] bool contains(const string_view_t& substr) const
+		{
+			return find(substr) != npos;
+		}
+
+		bool operator==(const string_view_t& right) const
+		{
+			return crt::strcmp(data(), right.data()) == 0;
+		}
 	};
 
 	class wstring_t : public base_string_t<wchar_t>
@@ -114,5 +139,27 @@ namespace cstl
 
 		wstring_t(const_pointer const data, const size_type size)
 				:	base_string_t(data, size) {}
+
+		[[nodiscard]] size_type find(const wstring_view_t& substr, const size_type offset = 0) const
+		{
+			const const_pointer found = crt::wcsstr(data() + offset, substr.data());
+
+			if (found == nullptr)
+			{
+				return npos;
+			}
+
+			return found - data();
+		}
+
+		[[nodiscard]] bool contains(const wstring_view_t& substr) const
+		{
+			return find(substr) != npos;
+		}
+
+		bool operator==(const wstring_view_t& right) const
+		{
+			return crt::wcscmp(data(), right.data()) == 0;
+		}
 	};
 }
