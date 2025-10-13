@@ -21,7 +21,7 @@ namespace cstl
 		explicit base_string_t(const_pointer const data, const size_type size)
 				:	elements_(size + 1)
 		{
-			mem::copy(elements_.data(), data, size * sizeof(T));
+			crt::memcpy(elements_.data(), data, size * sizeof(T));
 
 			elements_[size] = T('\0');
 		}
@@ -94,7 +94,7 @@ namespace cstl
 		string_t() = default;
 
 		string_t(const_pointer const data)
-				:	base_string_t(data, str::length(data)) {}
+				:	base_string_t(data, crt::strlen(data)) {}
 
 		string_t(const_pointer const data, const size_type size)
 				:	base_string_t(data, size) {}
@@ -110,7 +110,7 @@ namespace cstl
 		wstring_t() = default;
 
 		wstring_t(const_pointer const data)
-				:	base_string_t(data, str::wlength(data)) {}
+				:	base_string_t(data, crt::wcslen(data)) {}
 
 		wstring_t(const_pointer const data, const size_type size)
 				:	base_string_t(data, size) {}

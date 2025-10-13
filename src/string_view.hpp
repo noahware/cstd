@@ -85,7 +85,7 @@ namespace cstl
 		string_view_t() = default;
 
 		string_view_t(const_pointer const data)
-				:	base_string_view_t(data, str::length(data)) {}
+				:	base_string_view_t(data, crt::strlen(data)) {}
 	};
 
 	class wstring_view_t : public base_string_view_t<wchar_t>
@@ -98,6 +98,6 @@ namespace cstl
 		wstring_view_t() = default;
 
 		wstring_view_t(const_pointer const data)
-				:	base_string_view_t(data, str::wlength(data)) {}
+				:	base_string_view_t(data, crt::wcslen(data)) {}
 	};
 }

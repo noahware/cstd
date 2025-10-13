@@ -231,7 +231,7 @@ namespace cstl
 			{
 				// todo: support for non-trivial types
 
-				mem::copy(new_elements, elements_, copy_size * sizeof(value_type));
+				crt::memcpy(new_elements, elements_, copy_size * sizeof(value_type));
 			}
 		}
 
@@ -239,7 +239,7 @@ namespace cstl
 		{
 			if (elements_)
 			{
-				mem::free(elements_);
+				crt::free(elements_);
 
 				elements_ = nullptr;
 			}
@@ -254,7 +254,7 @@ namespace cstl
 
 			const size_type new_elements_size = new_size * sizeof(value_type);
 
-			return static_cast<pointer>(mem::allocate(new_elements_size));
+			return static_cast<pointer>(crt::malloc(new_elements_size));
 		}
 
 		pointer elements_ = nullptr;
