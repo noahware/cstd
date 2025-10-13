@@ -1,5 +1,6 @@
 #include "crt.hpp"
-#include <Windows.h>
+#include <intrin.h>
+#include <cstring>
 
 void* cstl::crt::malloc(const uint64_t size)
 {
@@ -24,4 +25,24 @@ cstl::uint64_t cstl::crt::strlen(const char* const str)
 cstl::uint64_t cstl::crt::wcslen(const wchar_t* const str)
 {
 	return ::wcslen(str);
+}
+
+cstl::int32_t cstl::crt::strcmp(const char* first_str, const char* second_str)
+{
+	return ::strcmp(first_str, second_str);
+}
+
+cstl::int32_t cstl::crt::wcscmp(const wchar_t* first_str, const wchar_t* second_str)
+{
+	return ::wcscmp(first_str, second_str);
+}
+
+cstl::int32_t cstl::crt::strncmp(const char* first_str, const char* second_str, uint64_t size)
+{
+	return ::strncmp(first_str, second_str, size);
+}
+
+cstl::int32_t cstl::crt::wcsncmp(const wchar_t* first_str, const wchar_t* second_str, uint64_t size)
+{
+	return ::wcsncmp(first_str, second_str, size);
 }
