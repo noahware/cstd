@@ -2,6 +2,50 @@
 #include <intrin.h>
 #include <cstring>
 
+void* operator new(const size_t size)
+{
+	void* const buffer = cstl::crt::malloc(size);
+
+	return buffer;
+}
+
+void* operator new[](const size_t size)
+{
+	void* const buffer = cstl::crt::malloc(size);
+
+	return buffer;
+}
+
+void* operator new([[maybe_unused]] const size_t size, void* const buffer) noexcept
+{
+	return buffer;
+}
+
+void* operator new[]([[maybe_unused]] const size_t size, void* const buffer) noexcept
+{
+	return buffer;
+}
+
+void operator delete(void* buffer) noexcept
+{
+	if (!buffer)
+	{
+		return;
+	}
+
+	cstl::crt::free(buffer);
+}
+
+void operator delete(void* buffer, [[maybe_unused]] const size_t size) noexcept
+{
+	if (!buffer)
+	{
+		return;
+	}
+
+	cstl::crt::free(buffer);
+}
+
 void* cstl::crt::malloc(const uint64_t size)
 {
 	return ::malloc(size);
