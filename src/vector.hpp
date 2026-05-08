@@ -1,6 +1,7 @@
 #pragma once
 #include "exception.hpp"
 #include "initializer_list.hpp"
+#include "type_traits.hpp"
 #include "crt.hpp"
 #include "types.hpp"
 
@@ -16,19 +17,25 @@ namespace cstl
 		using const_pointer = const value_type*;
 		using reference = value_type&;
 		using const_reference = const value_type&;
+		using rvalue_reference = value_type&&;
 
 		vector_t() = default;
 
-		explicit vector_t(const size_type size)
+		explicit vector_t(const size_type size, const_reference default_value = T())
 		{
 			reserve(size);
 
-			size_ = size;
+			for (size_type i = 0; i < size; i++)
+			{
+				push_back(default_value);
+			}
 		}
 
 		template <class Y>
 		vector_t(const initializer_list_t<Y> list)
 		{
+			reserve(list.size());
+
 			for (const Y& entry : list)
 			{
 				push_back(static_cast<value_type>(entry));
@@ -36,7 +43,7 @@ namespace cstl
 		}
 
 		vector_t(const vector_t&) = delete;
-		vector_t & operator=(const vector_t&) = delete;
+		vector_t& operator=(const vector_t&) = delete;
 
 		vector_t(vector_t&& right) noexcept
 				:	elements_(right.elements_),
@@ -58,7 +65,9 @@ namespace cstl
 				size_ = right.size_;
 				max_size_ = right.max_size_;
 
-				right.discard_elements();
+				right.elements_ = nullptr;
+				right.size_ = 0;
+				right.max_size_ = 0;
 			}
 
 			return *this;
@@ -89,32 +98,32 @@ namespace cstl
 			return elements_ + size_;
 		}
 
-		[[nodiscard]] pointer front()
+		[[nodiscard]] reference front()
 		{
 			CSTL_ASSERT(!empty(), "[vector_t] front() called on an empty vector");
 
-			return begin();
+			return *begin();
 		}
 
-		[[nodiscard]] const_pointer front() const
+		[[nodiscard]] const_reference front() const
 		{
 			CSTL_ASSERT(!empty(), "[vector_t] front() called on an empty vector");
 
-			return begin();
+			return *begin();
 		}
 
-		[[nodiscard]] pointer back()
+		[[nodiscard]] reference back()
 		{
 			CSTL_ASSERT(!empty(), "[vector_t] back() called on an empty vector");
 
-			return end() - 1;
+			return *(end() - 1);
 		}
 
-		[[nodiscard]] const_pointer back() const
+		[[nodiscard]] const_reference back() const
 		{
 			CSTL_ASSERT(!empty(), "[vector_t] back() called on an empty vector");
 
-			return end() - 1;
+			return *(end() - 1);
 		}
 
 		[[nodiscard]] reference operator[](const size_type index)
@@ -153,16 +162,26 @@ namespace cstl
 
 		void push_back(const_reference value)
 		{
-			if (size_ < max_size_)
-			{
-				elements_[size_++] = value;
-			}
-			else
+			if (max_size_ <= size_)
 			{
 				grow_elements();
-
-				push_back(value);
 			}
+
+			new (elements_ + size_) T(value);
+
+			++size_;
+		}
+
+		void push_back(rvalue_reference value)
+		{
+			if (max_size_ <= size_)
+			{
+				grow_elements();
+			}
+
+			new (elements_ + size_) T(static_cast<rvalue_reference>(value));
+
+			++size_;
 		}
 
 		void pop_back()
@@ -170,6 +189,10 @@ namespace cstl
 			CSTL_ASSERT(size_ != 0, "[vector_t] attempted to pop back empty vector");
 
 			size_--;
+
+			const auto current = elements_ + size_;
+
+			deconstruct_elements(current, current + 1);
 		}
 
 		void reserve(const size_type size)
@@ -180,7 +203,7 @@ namespace cstl
 
 				CSTL_ASSERT(new_elements != nullptr, "[vector_t] unable to reserve elements");
 
-				copy_elements(new_elements, size_);
+				move_elements(new_elements);
 				free_elements();
 
 				elements_ = new_elements;
@@ -204,7 +227,10 @@ namespace cstl
 					reserve(new_size);
 				}
 
-				// todo: construct new elements
+				for (size_type i = size_; i < new_size; ++i)
+				{
+					new (elements_ + i) T();
+				}
 			}
 
 			size_ = new_size;
@@ -212,6 +238,8 @@ namespace cstl
 
 		void clear() noexcept
 		{
+			deconstruct_elements(begin(), end());
+
 			size_ = 0;
 		}
 
@@ -232,7 +260,7 @@ namespace cstl
 
 			CSTL_ASSERT(new_elements != nullptr, "[vector_t] unable to grow elements");
 
-			copy_elements(new_elements, size_);
+			move_elements(new_elements);
 			free_elements();
 
 			elements_ = new_elements;
@@ -241,23 +269,34 @@ namespace cstl
 
 		void deconstruct_elements(pointer const start, pointer const end)
 		{
-			pointer current = start;
-
-			while (current < end)
+			if constexpr (!is_trivially_destructible_v<T>)
 			{
-				// todo: implement deconstructing of non-trivial types
-
-				++current;
+				for (pointer current = start; current < end; ++current)
+				{
+					current->~T();
+				}
 			}
 		}
 
-		void copy_elements(pointer const new_elements, const size_type copy_size)
+		void move_elements(pointer const new_elements)
 		{
-			if (elements_)
+			if (!elements_)
 			{
-				// todo: support for non-trivial types
+				return;
+			}
 
-				crt::memcpy(new_elements, elements_, copy_size * sizeof(value_type));
+			if constexpr (is_trivially_copyable_v<T>)
+			{
+				crt::memcpy(new_elements, elements_, size_ * sizeof(value_type));
+			}
+			else
+			{
+				for (size_type i = 0; i < size_; ++i)
+				{
+					new (new_elements + i) T(static_cast<rvalue_reference>(elements_[i]));
+
+					elements_[i].~T();
+				}
 			}
 		}
 
@@ -273,6 +312,7 @@ namespace cstl
 
 		void discard_elements()
 		{
+			deconstruct_elements(begin(), end());
 			free_elements();
 
 			size_ = 0;
