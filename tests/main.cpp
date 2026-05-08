@@ -5,7 +5,7 @@ cstl::int32_t main()
 {
 	cstl::vector<cstl::unique_ptr<int>> pointers;
 
-	pointers.push_back(cstl::make_unique<int>(7)); // will become 8 after the += 8
+	pointers.push_back(cstl::make_unique<int>(7)); // will become 8 after the += 1
 
 	for (const auto& element : pointers)
 	{

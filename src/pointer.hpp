@@ -54,6 +54,16 @@ namespace cstl
 		explicit unique_ptr(const pointer object)
 				:	base_ptr<T>(object) { }
 
+		// add derived class support to cast
+		template <class U> friend class unique_ptr;
+
+		template <class U>
+		unique_ptr(unique_ptr<U>&& right) noexcept
+				:	base_ptr<T>(right.object_)
+		{
+			right.object_ = nullptr;
+		}
+
 		unique_ptr(const unique_ptr&) = delete;
 		unique_ptr& operator=(const unique_ptr&) = delete;
 
@@ -111,6 +121,22 @@ namespace cstl
 					reference_count_(right.reference_count_)
 		{
 			++(*reference_count_);
+		}
+
+		// add derived class support to cast
+		template <class U> friend class shared_ptr;
+
+		template <class U>
+		shared_ptr(const shared_ptr<U>& right) noexcept
+				:	shared_ptr(right.object_, right.reference_count_) { }
+
+		template <class U>
+		shared_ptr(shared_ptr<U>&& right) noexcept
+				:	base_ptr<T>(right.object_),
+					reference_count_(right.reference_count_)
+		{
+			right.object_ = nullptr;
+			right.reference_count_ = nullptr;
 		}
 
 		shared_ptr& operator=(const shared_ptr& right)
