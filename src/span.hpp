@@ -5,21 +5,21 @@
 namespace cstl
 {
 	template <class T>
-	class span_t
+	class span
 	{
 	public:
-		using size_type = uint64_t;
+		using size_type = size_t;
 		using value_type = T;
 		using pointer = value_type*;
 		using reference = value_type&;
 
-		span_t() noexcept = default;
+		span() noexcept = default;
 
-		explicit span_t(const pointer elements, const size_type count) noexcept
+		explicit span(const pointer elements, const size_type count) noexcept
 				:	elements_(elements),
 					count_(count) { }
 
-		explicit span_t(const pointer elements_begin, const pointer elements_end) noexcept
+		explicit span(const pointer elements_begin, const pointer elements_end) noexcept
 				:	elements_(elements_begin),
 					count_(static_cast<size_type>(elements_end - elements_begin)) { }
 
@@ -35,7 +35,7 @@ namespace cstl
 
 		[[nodiscard]] reference operator[](const size_type index) const
 		{
-			CSTL_ASSERT(index < count_, "[span_t] attempted to access outside of range of elements");
+			CSTL_ASSERT(index < count_, "[span] attempted to access outside of range of elements");
 
 			return elements_[index];
 		}

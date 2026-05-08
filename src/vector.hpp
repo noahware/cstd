@@ -8,10 +8,10 @@
 namespace cstl
 {
 	template <class T>
-	class vector_t
+	class vector
 	{
 	public:
-		using size_type = uint64_t;
+		using size_type = size_t;
 		using value_type = T;
 		using pointer = value_type*;
 		using const_pointer = const value_type*;
@@ -19,9 +19,9 @@ namespace cstl
 		using const_reference = const value_type&;
 		using rvalue_reference = value_type&&;
 
-		vector_t() = default;
+		vector() = default;
 
-		explicit vector_t(const size_type size, const_reference default_value = T())
+		explicit vector(const size_type size, const_reference default_value = T())
 		{
 			reserve(size);
 
@@ -32,7 +32,7 @@ namespace cstl
 		}
 
 		template <class Y>
-		vector_t(const initializer_list_t<Y> list)
+		vector(const initializer_list<Y> list)
 		{
 			reserve(list.size());
 
@@ -42,10 +42,10 @@ namespace cstl
 			}
 		}
 
-		vector_t(const vector_t&) = delete;
-		vector_t& operator=(const vector_t&) = delete;
+		vector(const vector&) = delete;
+		vector& operator=(const vector&) = delete;
 
-		vector_t(vector_t&& right) noexcept
+		vector(vector&& right) noexcept
 				:	elements_(right.elements_),
 					size_(right.size_),
 					max_size_(right.max_size_)
@@ -55,7 +55,7 @@ namespace cstl
 			right.max_size_ = 0;
 		}
 
-		vector_t& operator=(vector_t&& right) noexcept
+		vector& operator=(vector&& right) noexcept
 		{
 			if (this != &right)
 			{
@@ -73,7 +73,7 @@ namespace cstl
 			return *this;
 		}
 
-		~vector_t()
+		~vector()
 		{
 			discard_elements();
 		}
@@ -100,42 +100,42 @@ namespace cstl
 
 		[[nodiscard]] reference front()
 		{
-			CSTL_ASSERT(!empty(), "[vector_t] front() called on an empty vector");
+			CSTL_ASSERT(!empty(), "[vector] front() called on an empty vector");
 
 			return *begin();
 		}
 
 		[[nodiscard]] const_reference front() const
 		{
-			CSTL_ASSERT(!empty(), "[vector_t] front() called on an empty vector");
+			CSTL_ASSERT(!empty(), "[vector] front() called on an empty vector");
 
 			return *begin();
 		}
 
 		[[nodiscard]] reference back()
 		{
-			CSTL_ASSERT(!empty(), "[vector_t] back() called on an empty vector");
+			CSTL_ASSERT(!empty(), "[vector] back() called on an empty vector");
 
 			return *(end() - 1);
 		}
 
 		[[nodiscard]] const_reference back() const
 		{
-			CSTL_ASSERT(!empty(), "[vector_t] back() called on an empty vector");
+			CSTL_ASSERT(!empty(), "[vector] back() called on an empty vector");
 
 			return *(end() - 1);
 		}
 
 		[[nodiscard]] reference operator[](const size_type index)
 		{
-			CSTL_ASSERT(index < size_, "[vector_t] attempted to access outside of range of elements");
+			CSTL_ASSERT(index < size_, "[vector] attempted to access outside of range of elements");
 
 			return elements_[index];
 		}
 
 		[[nodiscard]] const_reference operator[](const size_type index) const
 		{
-			CSTL_ASSERT(index < size_, "[vector_t] attempted to access outside of range of elements");
+			CSTL_ASSERT(index < size_, "[vector] attempted to access outside of range of elements");
 
 			return elements_[index];
 		}
@@ -186,7 +186,7 @@ namespace cstl
 
 		void pop_back()
 		{
-			CSTL_ASSERT(size_ != 0, "[vector_t] attempted to pop back empty vector");
+			CSTL_ASSERT(size_ != 0, "[vector] attempted to pop back empty vector");
 
 			size_--;
 
@@ -201,7 +201,7 @@ namespace cstl
 			{
 				pointer const new_elements = allocate_elements(size);
 
-				CSTL_ASSERT(new_elements != nullptr, "[vector_t] unable to reserve elements");
+				CSTL_ASSERT(new_elements != nullptr, "[vector] unable to reserve elements");
 
 				move_elements(new_elements);
 				free_elements();
@@ -249,7 +249,6 @@ namespace cstl
 		}
 
 	protected:
-
 		constexpr static size_type growth_factor = 2;
 
 		void grow_elements()
@@ -258,7 +257,7 @@ namespace cstl
 
 			pointer const new_elements = allocate_elements(new_size);
 
-			CSTL_ASSERT(new_elements != nullptr, "[vector_t] unable to grow elements");
+			CSTL_ASSERT(new_elements != nullptr, "[vector] unable to grow elements");
 
 			move_elements(new_elements);
 			free_elements();

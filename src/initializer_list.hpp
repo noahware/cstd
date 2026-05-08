@@ -4,21 +4,21 @@
 namespace cstl
 {
 	template <class T>
-	class initializer_list_t
+	class initializer_list
 	{
 	public:
-		using size_type = uint64_t;
+		using size_type = size_t;
 		using value_type = T;
 		using const_pointer = const value_type*;
 
-		constexpr initializer_list_t() = default;
+		constexpr initializer_list() = default;
 
-		constexpr initializer_list_t(const_pointer const begin, const_pointer const end)
+		constexpr initializer_list(const_pointer const begin, const_pointer const end)
 				:	begin_(begin),
 					end_(end) { }
 
 		template <size_type Count>
-		explicit constexpr initializer_list_t(const T(&array)[Count])
+		explicit constexpr initializer_list(const T(&array)[Count])
 				:	begin_(array),
 					end_(array + Count) {}
 

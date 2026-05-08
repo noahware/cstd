@@ -10,18 +10,18 @@ void operator delete(void* buffer, size_t size) noexcept;
 
 namespace cstl::crt
 {
-	void* malloc(uint64_t size);
+	void* malloc(size_t size);
 	void free(void* buffer);
-	void memcpy(void* destination, const void* source, uint64_t size);
+	void memcpy(void* destination, const void* source, size_t size);
 
-	uint64_t strlen(const char* str);
-	uint64_t wcslen(const wchar_t* str);
+	size_t strlen(const char* str);
+	size_t wcslen(const wchar_t* str);
 
 	int32_t strcmp(const char* first_str, const char* second_str);
 	int32_t wcscmp(const wchar_t* first_str, const wchar_t* second_str);
 
-	int32_t strncmp(const char* first_str, const char* second_str, uint64_t size);
-	int32_t wcsncmp(const wchar_t* first_str, const wchar_t* second_str, uint64_t size);
+	int32_t strncmp(const char* first_str, const char* second_str, size_t size);
+	int32_t wcsncmp(const wchar_t* first_str, const wchar_t* second_str, size_t size);
 
 	const char* strchr(const char* str, char target);
 	const wchar_t* wcschr(const wchar_t* str, wchar_t target);

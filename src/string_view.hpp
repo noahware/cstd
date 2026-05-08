@@ -5,10 +5,10 @@
 namespace cstl
 {
 	template <class T>
-	class base_string_view_t
+	class base_string_view
 	{
 	public:
-		using size_type = uint64_t;
+		using size_type = size_t;
 		using character_type = T;
 		using pointer = character_type*;
 		using const_pointer = const character_type*;
@@ -17,9 +17,9 @@ namespace cstl
 
 		constexpr static size_type npos = static_cast<size_type>(-1);
 
-		base_string_view_t() = default;
+		base_string_view() = default;
 
-		explicit base_string_view_t(const_pointer const data, const size_type size)
+		explicit base_string_view(const_pointer const data, const size_type size)
 				:	data_(data),
 					size_(size) {}
 
@@ -45,14 +45,14 @@ namespace cstl
 
 		[[nodiscard]] reference operator[](const size_type index)
 		{
-			CSTL_ASSERT(index < size_, "[base_string_view_t] attempted to access outside of range of data");
+			CSTL_ASSERT(index < size_, "[base_string_view] attempted to access outside of range of data");
 
 			return data_[index];
 		}
 
 		[[nodiscard]] const_reference operator[](const size_type index) const
 		{
-			CSTL_ASSERT(index < size_, "[base_string_view_t] attempted to access outside of range of data");
+			CSTL_ASSERT(index < size_, "[base_string_view] attempted to access outside of range of data");
 
 			return data_[index];
 		}
@@ -77,22 +77,22 @@ namespace cstl
 		size_type size_ = 0;
 	};
 
-	class string_view_t : public base_string_view_t<char>
+	class string_view : public base_string_view<char>
 	{
 	public:
 		using character_type = char;
 		using pointer = character_type*;
 		using const_pointer = const character_type*;
 
-		string_view_t() = default;
+		string_view() = default;
 
-		string_view_t(const_pointer const data)
-				:	base_string_view_t(data, crt::strlen(data)) {}
+		string_view(const_pointer const data)
+				:	base_string_view(data, crt::strlen(data)) {}
 
-		string_view_t(const_pointer const data, const size_type size)
-				:	base_string_view_t(data, size) {}
+		string_view(const_pointer const data, const size_type size)
+				:	base_string_view(data, size) {}
 
-		[[nodiscard]] size_type find(const string_view_t& substr, const size_type offset = 0) const
+		[[nodiscard]] size_type find(const string_view& substr, const size_type offset = 0) const
 		{
 			const const_pointer found = crt::strstr(data() + offset, substr.data());
 
@@ -104,33 +104,33 @@ namespace cstl
 			return found - data();
 		}
 
-		[[nodiscard]] bool contains(const string_view_t& substr) const
+		[[nodiscard]] bool contains(const string_view& substr) const
 		{
 			return find(substr) != npos;
 		}
 
-		bool operator==(const string_view_t& right) const
+		bool operator==(const string_view& right) const
 		{
 			return crt::strcmp(data(), right.data()) == 0;
 		}
 	};
 
-	class wstring_view_t : public base_string_view_t<wchar_t>
+	class wstring_view : public base_string_view<wchar_t>
 	{
 	public:
 		using character_type = wchar_t;
 		using pointer = character_type*;
 		using const_pointer = const character_type*;
 
-		wstring_view_t() = default;
+		wstring_view() = default;
 
-		wstring_view_t(const_pointer const data)
-				:	base_string_view_t(data, crt::wcslen(data)) {}
+		wstring_view(const_pointer const data)
+				:	base_string_view(data, crt::wcslen(data)) {}
 
-		wstring_view_t(const_pointer const data, const size_type size)
-				:	base_string_view_t(data, size) {}
+		wstring_view(const_pointer const data, const size_type size)
+				:	base_string_view(data, size) {}
 
-		[[nodiscard]] size_type find(const wstring_view_t& substr, const size_type offset = 0) const
+		[[nodiscard]] size_type find(const wstring_view& substr, const size_type offset = 0) const
 		{
 			const const_pointer found = crt::wcsstr(data() + offset, substr.data());
 
@@ -142,12 +142,12 @@ namespace cstl
 			return found - data();
 		}
 
-		[[nodiscard]] bool contains(const wstring_view_t& substr) const
+		[[nodiscard]] bool contains(const wstring_view& substr) const
 		{
 			return find(substr) != npos;
 		}
 
-		bool operator==(const wstring_view_t& right) const
+		bool operator==(const wstring_view& right) const
 		{
 			return crt::wcscmp(data(), right.data()) == 0;
 		}

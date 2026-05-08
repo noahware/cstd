@@ -3,15 +3,15 @@
 namespace cstl
 {
 	template <class First, class Second>
-	class pair_t
+	class pair
 	{
 	public:
 		using first_type = First;
 		using second_type = Second;
 
-		pair_t() = default;
+		pair() = default;
 
-		explicit pair_t(const first_type& first_in, const second_type& second_in)
+		explicit pair(const first_type& first_in, const second_type& second_in)
 			:	first(first_in),
 				second(second_in) {}
 

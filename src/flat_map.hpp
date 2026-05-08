@@ -6,24 +6,24 @@
 namespace cstl
 {
 	template <class Key, class T>
-	class flat_map_t
+	class flat_map
 	{
 	public:
-		using size_type = uint64_t;
+		using size_type = size_t;
 		using key_type = Key;
 		using mapped_type = T;
 		using mapped_reference = mapped_type&;
 		using const_mapped_reference = const mapped_type&;
-		using value_type = pair_t<key_type, mapped_type>;
+		using value_type = pair<key_type, mapped_type>;
 		using pointer = value_type*;
 		using const_pointer = const value_type*;
 		using reference = value_type&;
 		using const_reference = const value_type&;
 
-		flat_map_t() = default;
+		flat_map() = default;
 
 		template <class Y>
-		flat_map_t(const initializer_list_t<Y> list)
+		flat_map(const initializer_list<Y> list)
 		{
 			for (const Y& entry : list)
 			{
@@ -43,28 +43,28 @@ namespace cstl
 
 		[[nodiscard]] pointer front()
 		{
-			CSTL_ASSERT(!empty(), "[flat_map_t] front() called on an empty flat map");
+			CSTL_ASSERT(!empty(), "[flat_map] front() called on an empty flat map");
 
 			return begin();
 		}
 
 		[[nodiscard]] const_pointer front() const
 		{
-			CSTL_ASSERT(!empty(), "[flat_map_t] front() called on an empty flat map");
+			CSTL_ASSERT(!empty(), "[flat_map] front() called on an empty flat map");
 
 			return begin();
 		}
 
 		[[nodiscard]] pointer back()
 		{
-			CSTL_ASSERT(!empty(), "[flat_map_t] back() called on an empty flat map");
+			CSTL_ASSERT(!empty(), "[flat_map] back() called on an empty flat map");
 
 			return end() - 1;
 		}
 
 		[[nodiscard]] const_pointer back() const
 		{
-			CSTL_ASSERT(!empty(), "[flat_map_t] back() called on an empty flat map");
+			CSTL_ASSERT(!empty(), "[flat_map] back() called on an empty flat map");
 
 			return end() - 1;
 		}
@@ -87,14 +87,14 @@ namespace cstl
 		{
 			const_pointer entry = find(key);
 
-			CSTL_ASSERT(entry != nullptr, "[flat_map_t] unable to find key");
+			CSTL_ASSERT(entry != nullptr, "[flat_map] unable to find key");
 
 			return entry->second;
 		}
 
 		[[nodiscard]] pointer find(const key_type key)
 		{
-			for (uint64_t i = 0; i < elements_.size(); i++)
+			for (size_type i = 0; i < elements_.size(); i++)
 			{
 				pointer const entry = &elements_[i];
 
@@ -109,7 +109,7 @@ namespace cstl
 
 		[[nodiscard]] const_pointer find(const key_type key) const
 		{
-			for (uint64_t i = 0; i < elements_.size(); i++)
+			for (size_type i = 0; i < elements_.size(); i++)
 			{
 				const_pointer const entry = &elements_[i];
 
@@ -133,6 +133,6 @@ namespace cstl
 		}
 
 	protected:
-		vector_t<value_type> elements_;
+		vector<value_type> elements_;
 	};
 }

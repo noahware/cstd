@@ -5,11 +5,11 @@
 
 namespace cstl
 {
-	template <class T, uint64_t Count>
-	class array_t
+	template <class T, size_t Count>
+	class array
 	{
 	public:
-		using size_type = uint64_t;
+		using size_type = size_t;
 		using value_type = T;
 		using pointer = value_type*;
 		using const_pointer = const value_type*;
@@ -38,14 +38,14 @@ namespace cstl
 
 		[[nodiscard]] reference operator[](const size_type index)
 		{
-			CSTL_ASSERT(index < Count, "[array_t] attempted to access outside of range of elements");
+			CSTL_ASSERT(index < Count, "[array] attempted to access outside of range of elements");
 
 			return elements[index];
 		}
 
 		[[nodiscard]] const_reference operator[](const size_type index) const
 		{
-			CSTL_ASSERT(index < Count, "[array_t] attempted to access outside of range of elements");
+			CSTL_ASSERT(index < Count, "[array] attempted to access outside of range of elements");
 
 			return elements[index];
 		}

@@ -1,14 +1,18 @@
+#include "pointer.hpp"
 #include "string.hpp"
 
 cstl::int32_t main()
 {
-	const cstl::string_t string = "hello world!";
+	cstl::vector<cstl::unique_ptr<int>> pointers;
 
-	const char* raw_string = string.data();
-	const char raw_char = string[3];
+	pointers.push_back(cstl::make_unique<int>(7)); // will become 8 after the += 8
 
-	(void)raw_string;
-	(void)raw_char;
+	for (const auto& element : pointers)
+	{
+		*element += 1;
+	}
 
-	return string == "hello world!";
+	pointers.push_back(cstl::make_unique<int>(6));
+
+	return *(pointers[0]) + *(pointers[1]); // 8 + 6 = 14
 }

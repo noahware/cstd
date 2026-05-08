@@ -4,7 +4,7 @@
 namespace cstl
 {
 	template <class T>
-	class base_ptr_t
+	class base_ptr
 	{
 	public:
 		using size_type = size_t;
@@ -14,9 +14,9 @@ namespace cstl
 		using reference = value_type&;
 		using const_reference = const value_type&;
 
-		base_ptr_t() noexcept = default;
+		base_ptr() noexcept = default;
 
-		explicit base_ptr_t(const pointer object)
+		explicit base_ptr(const pointer object)
 				:	object_(object) { }
 
 		[[nodiscard]] pointer get() const noexcept
@@ -44,26 +44,26 @@ namespace cstl
 	};
 
 	template <class T>
-	class unique_ptr_t : public base_ptr_t<T>
+	class unique_ptr : public base_ptr<T>
 	{
 	public:
-		using pointer = typename base_ptr_t<T>::pointer;
+		using pointer = typename base_ptr<T>::pointer;
 
-		unique_ptr_t() noexcept = default;
+		unique_ptr() noexcept = default;
 
-		explicit unique_ptr_t(const pointer object)
-				:	base_ptr_t<T>(object) { }
+		explicit unique_ptr(const pointer object)
+				:	base_ptr<T>(object) { }
 
-		unique_ptr_t(const unique_ptr_t&) = delete;
-		unique_ptr_t& operator=(const unique_ptr_t&) = delete;
+		unique_ptr(const unique_ptr&) = delete;
+		unique_ptr& operator=(const unique_ptr&) = delete;
 
-		unique_ptr_t(unique_ptr_t&& right) noexcept
-				:	base_ptr_t<T>(right.object_)
+		unique_ptr(unique_ptr&& right) noexcept
+				:	base_ptr<T>(right.object_)
 		{
 			right.object_ = nullptr;
 		}
 
-		unique_ptr_t& operator=(unique_ptr_t&& right) noexcept
+		unique_ptr& operator=(unique_ptr&& right) noexcept
 		{
 			if (this != &right)
 			{
@@ -77,7 +77,7 @@ namespace cstl
 			return *this;
 		}
 
-		~unique_ptr_t() noexcept
+		~unique_ptr() noexcept
 		{
 			reset();
 		}
@@ -94,26 +94,26 @@ namespace cstl
 	};
 
 	template <class T>
-	class shared_ptr_t : public base_ptr_t<T>
+	class shared_ptr : public base_ptr<T>
 	{
 	public:
-		using size_type = typename base_ptr_t<T>::size_type;
-		using pointer = typename base_ptr_t<T>::pointer;
+		using size_type = typename base_ptr<T>::size_type;
+		using pointer = typename base_ptr<T>::pointer;
 
-		shared_ptr_t() noexcept = default;
+		shared_ptr() noexcept = default;
 		
-		explicit shared_ptr_t(const pointer object, size_type* const reference_count)
-				:	base_ptr_t<T>(object),
+		explicit shared_ptr(const pointer object, size_type* const reference_count)
+				:	base_ptr<T>(object),
 					reference_count_(reference_count) { }
 
-		shared_ptr_t(const shared_ptr_t& right)
-				:	base_ptr_t<T>(right.object_),
+		shared_ptr(const shared_ptr& right)
+				:	base_ptr<T>(right.object_),
 					reference_count_(right.reference_count_)
 		{
 			++(*reference_count_);
 		}
 
-		shared_ptr_t& operator=(const shared_ptr_t& right)
+		shared_ptr& operator=(const shared_ptr& right)
 		{
 			if (this != &right)
 			{
@@ -128,15 +128,15 @@ namespace cstl
 			return *this;
 		}
 
-		shared_ptr_t(shared_ptr_t&& right) noexcept
-				:	base_ptr_t<T>(right.object_),
+		shared_ptr(shared_ptr&& right) noexcept
+				:	base_ptr<T>(right.object_),
 					reference_count_(right.reference_count_)
 		{
 			right.object_ = nullptr;
 			right.reference_count_ = nullptr;
 		}
 
-		shared_ptr_t& operator=(shared_ptr_t&& right) noexcept
+		shared_ptr& operator=(shared_ptr&& right) noexcept
 		{
 			if (this != &right)
 			{
@@ -152,7 +152,7 @@ namespace cstl
 			return *this;
 		}
 
-		~shared_ptr_t() noexcept
+		~shared_ptr() noexcept
 		{
 			reset();
 		}
@@ -178,19 +178,19 @@ namespace cstl
 	};
 
 	template <class T, class... Args>
-	unique_ptr_t<T> make_unique(Args... args)
+	unique_ptr<T> make_unique(Args... args)
 	{
 		T* object = new T(args...);
 
-		return unique_ptr_t<T>(object);
+		return unique_ptr<T>(object);
 	}
 
 	template <class T, class... Args>
-	shared_ptr_t<T> make_shared(Args... args)
+	shared_ptr<T> make_shared(Args... args)
 	{
 		T* object = new T(args...);
-		auto* count = new typename shared_ptr_t<T>::size_type(1);
+		auto* count = new typename shared_ptr<T>::size_type(1);
 
-		return shared_ptr_t<T>(object, count);
+		return shared_ptr<T>(object, count);
 	}
 }
