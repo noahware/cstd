@@ -50,7 +50,7 @@ namespace cstl
 			return elements[index];
 		}
 
-		[[nodiscard]] constexpr size_type size() noexcept
+		[[nodiscard]] constexpr size_type size() const noexcept
 		{
 			return Count;
 		}

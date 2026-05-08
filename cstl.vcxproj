@@ -160,10 +160,13 @@
     <ClInclude Include="src\initializer_list.hpp" />
     <ClInclude Include="src\crt.hpp" />
     <ClInclude Include="src\pair.hpp" />
+    <ClInclude Include="src\pointer.hpp" />
     <ClInclude Include="src\ranges.hpp" />
+    <ClInclude Include="src\span.hpp" />
     <ClInclude Include="src\string.hpp" />
     <ClInclude Include="src\string_view.hpp" />
     <ClInclude Include="src\types.hpp" />
+    <ClInclude Include="src\type_traits.hpp" />
     <ClInclude Include="src\vector.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
