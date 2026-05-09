@@ -23,6 +23,11 @@ namespace cstl
 				:	elements_(elements_begin),
 					count_(static_cast<size_type>(elements_end - elements_begin)) { }
 
+		template <class U, size_type Count>
+		span(const array<U, Count>& array) noexcept
+				:	elements_(array.data()),
+					count_(Count) { }
+
 		[[nodiscard]] pointer begin() const noexcept
 		{
 			return elements_;
