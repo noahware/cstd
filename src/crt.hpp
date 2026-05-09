@@ -1,13 +1,6 @@
 #pragma once
 #include "types.hpp"
 
-void* operator new(size_t size);
-void* operator new[](size_t size);
-void* operator new(size_t size, void* buffer) noexcept;
-void* operator new[](size_t size, void* buffer) noexcept;
-void operator delete(void* buffer) noexcept;
-void operator delete(void* buffer, size_t size) noexcept;
-
 namespace cstl::crt
 {
 	void* malloc(size_t size);
