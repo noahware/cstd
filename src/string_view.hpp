@@ -47,7 +47,7 @@ namespace cstl
 		{
 			CSTL_ASSERT(index < size_, "[base_string_view] attempted to access outside of range of data");
 
-			return data_[index];
+			return const_cast<pointer>(data_)[index];
 		}
 
 		[[nodiscard]] const_reference operator[](const size_type index) const
