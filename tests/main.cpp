@@ -1,18 +1,14 @@
-#include "pointer.hpp"
 #include "string.hpp"
+#include "hash.hpp"
+#include "types.hpp"
 
 cstl::int32_t main()
 {
-	cstl::vector<cstl::unique_ptr<int>> pointers;
+	constexpr cstl::string_view value = "nah";
+	constexpr cstl::string_view value2 = "nah";
 
-	pointers.push_back(cstl::make_unique<int>(7)); // will become 8 after the += 1
+	constexpr auto hash = cstl::hash<cstl::string_view>();
+	constexpr auto result = hash(value2);
 
-	for (const auto& element : pointers)
-	{
-		*element += 1;
-	}
-
-	pointers.push_back(cstl::make_unique<int>(6));
-
-	return *(pointers[0]) + *(pointers[1]); // 8 + 6 = 14
+	return hash(value) == result;
 }

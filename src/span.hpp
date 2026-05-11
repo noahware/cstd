@@ -1,5 +1,6 @@
 #pragma once
 #include "exception.hpp"
+#include "array.hpp"
 #include "types.hpp"
 
 namespace cstl
@@ -13,44 +14,44 @@ namespace cstl
 		using pointer = value_type*;
 		using reference = value_type&;
 
-		span() noexcept = default;
+		constexpr span() noexcept = default;
 
-		explicit span(const pointer elements, const size_type count) noexcept
+		constexpr explicit span(const pointer elements, const size_type count) noexcept
 				:	elements_(elements),
 					count_(count) { }
 
-		explicit span(const pointer elements_begin, const pointer elements_end) noexcept
+		constexpr explicit span(const pointer elements_begin, const pointer elements_end) noexcept
 				:	elements_(elements_begin),
 					count_(static_cast<size_type>(elements_end - elements_begin)) { }
 
 		template <class U, size_type Count>
-		span(const array<U, Count>& array) noexcept
+		constexpr span(const array<U, Count>& array) noexcept
 				:	elements_(array.data()),
 					count_(Count) { }
 
-		[[nodiscard]] pointer begin() const noexcept
+		[[nodiscard]] constexpr pointer begin() const noexcept
 		{
 			return elements_;
 		}
 
-		[[nodiscard]] pointer end() const noexcept
+		[[nodiscard]] constexpr pointer end() const noexcept
 		{
 			return elements_ + count_;
 		}
 
-		[[nodiscard]] reference operator[](const size_type index) const
+		[[nodiscard]] constexpr reference operator[](const size_type index) const
 		{
 			CSTL_ASSERT(index < count_, "[span] attempted to access outside of range of elements");
 
 			return elements_[index];
 		}
 
-		[[nodiscard]] size_type size() const noexcept
+		[[nodiscard]] constexpr size_type size() const noexcept
 		{
 			return count_;
 		}
 
-		[[nodiscard]] pointer data() const noexcept
+		[[nodiscard]] constexpr pointer data() const noexcept
 		{
 			return elements_;
 		}

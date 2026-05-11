@@ -19,9 +19,9 @@ namespace cstl
 
 		constexpr static size_type npos = static_cast<size_type>(-1);
 
-		base_string() = default;
+		base_string()  noexcept = default;
 
-		explicit base_string(const_pointer const data, const size_type size)
+		explicit base_string(const_pointer const data, const size_type size) noexcept
 				:	elements_(size + 1)
 		{
 			crt::memcpy(elements_.data(), data, size * sizeof(T));
@@ -94,12 +94,12 @@ namespace cstl
 		using pointer = character_type*;
 		using const_pointer = const character_type*;
 
-		string() = default;
+		string() noexcept = default;
 
-		string(const_pointer const data)
+		string(const_pointer const data) noexcept
 				:	base_string(data, crt::strlen(data)) {}
 
-		string(const_pointer const data, const size_type size)
+		string(const_pointer const data, const size_type size) noexcept
 				:	base_string(data, size) {}
 
 		[[nodiscard]] size_type find(const string_view& substr, const size_type offset = 0) const
@@ -132,12 +132,12 @@ namespace cstl
 		using pointer = character_type*;
 		using const_pointer = const character_type*;
 
-		wstring() = default;
+		wstring() noexcept = default;
 
-		wstring(const_pointer const data)
+		wstring(const_pointer const data) noexcept
 				:	base_string(data, crt::wcslen(data)) {}
 
-		wstring(const_pointer const data, const size_type size)
+		wstring(const_pointer const data, const size_type size) noexcept
 				:	base_string(data, size) {}
 
 		[[nodiscard]] size_type find(const wstring_view& substr, const size_type offset = 0) const

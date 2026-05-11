@@ -17,57 +17,57 @@ namespace cstl
 
 		constexpr static size_type npos = static_cast<size_type>(-1);
 
-		base_string_view() = default;
+		constexpr base_string_view() noexcept = default;
 
-		explicit base_string_view(const_pointer const data, const size_type size)
+		constexpr explicit base_string_view(const_pointer const data, const size_type size) noexcept
 				:	data_(data),
 					size_(size) {}
 
-		[[nodiscard]] pointer begin() noexcept
+		[[nodiscard]] constexpr pointer begin() noexcept
 		{
 			return data_;
 		}
 
-		[[nodiscard]] pointer end() noexcept
+		[[nodiscard]] constexpr pointer end() noexcept
 		{
 			return data_ + size_;
 		}
 
-		[[nodiscard]] const_pointer begin() const noexcept
+		[[nodiscard]] constexpr const_pointer begin() const noexcept
 		{
 			return data_;
 		}
 
-		[[nodiscard]] const_pointer end() const noexcept
+		[[nodiscard]] constexpr const_pointer end() const noexcept
 		{
 			return data_ + size_;
 		}
 
-		[[nodiscard]] reference operator[](const size_type index)
+		[[nodiscard]] constexpr reference operator[](const size_type index)
 		{
 			CSTL_ASSERT(index < size_, "[base_string_view] attempted to access outside of range of data");
 
 			return const_cast<pointer>(data_)[index];
 		}
 
-		[[nodiscard]] const_reference operator[](const size_type index) const
+		[[nodiscard]] constexpr const_reference operator[](const size_type index) const
 		{
 			CSTL_ASSERT(index < size_, "[base_string_view] attempted to access outside of range of data");
 
 			return data_[index];
 		}
 
-		[[nodiscard]] const_pointer data() const
+		[[nodiscard]] constexpr const_pointer data() const
 		{
 			return data_;
 		}
 
-		[[nodiscard]] size_type size() const
+		[[nodiscard]] constexpr size_type size() const
 		{
 			return size_;
 		}
 
-		[[nodiscard]] bool empty() const
+		[[nodiscard]] constexpr bool empty() const
 		{
 			return size_ == 0;
 		}
@@ -84,15 +84,15 @@ namespace cstl
 		using pointer = character_type*;
 		using const_pointer = const character_type*;
 
-		string_view() = default;
+		constexpr string_view() noexcept = default;
 
-		string_view(const_pointer const data)
+		constexpr string_view(const_pointer const data) noexcept
 				:	base_string_view(data, crt::strlen(data)) {}
 
-		string_view(const_pointer const data, const size_type size)
+		constexpr string_view(const_pointer const data, const size_type size) noexcept
 				:	base_string_view(data, size) {}
 
-		[[nodiscard]] size_type find(const string_view& substr, const size_type offset = 0) const
+		[[nodiscard]] constexpr size_type find(const string_view& substr, const size_type offset = 0) const
 		{
 			const const_pointer found = crt::strstr(data() + offset, substr.data());
 
@@ -104,12 +104,12 @@ namespace cstl
 			return found - data();
 		}
 
-		[[nodiscard]] bool contains(const string_view& substr) const
+		[[nodiscard]] constexpr bool contains(const string_view& substr) const
 		{
 			return find(substr) != npos;
 		}
 
-		bool operator==(const string_view& right) const
+		[[nodiscard]] constexpr bool operator==(const string_view& right) const
 		{
 			return crt::strcmp(data(), right.data()) == 0;
 		}
@@ -122,15 +122,15 @@ namespace cstl
 		using pointer = character_type*;
 		using const_pointer = const character_type*;
 
-		wstring_view() = default;
+		constexpr wstring_view() noexcept = default;
 
-		wstring_view(const_pointer const data)
+		constexpr wstring_view(const_pointer const data) noexcept
 				:	base_string_view(data, crt::wcslen(data)) {}
 
-		wstring_view(const_pointer const data, const size_type size)
+		constexpr wstring_view(const_pointer const data, const size_type size) noexcept
 				:	base_string_view(data, size) {}
 
-		[[nodiscard]] size_type find(const wstring_view& substr, const size_type offset = 0) const
+		[[nodiscard]] constexpr size_type find(const wstring_view& substr, const size_type offset = 0) const
 		{
 			const const_pointer found = crt::wcsstr(data() + offset, substr.data());
 
@@ -142,12 +142,12 @@ namespace cstl
 			return found - data();
 		}
 
-		[[nodiscard]] bool contains(const wstring_view& substr) const
+		[[nodiscard]] constexpr bool contains(const wstring_view& substr) const
 		{
 			return find(substr) != npos;
 		}
 
-		bool operator==(const wstring_view& right) const
+		[[nodiscard]] constexpr bool operator==(const wstring_view& right) const
 		{
 			return crt::wcscmp(data(), right.data()) == 0;
 		}

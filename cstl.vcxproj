@@ -157,6 +157,7 @@
     <ClInclude Include="src\array.hpp" />
     <ClInclude Include="src\exception.hpp" />
     <ClInclude Include="src\flat_map.hpp" />
+    <ClInclude Include="src\hash.hpp" />
     <ClInclude Include="src\initializer_list.hpp" />
     <ClInclude Include="src\crt.hpp" />
     <ClInclude Include="src\pair.hpp" />
