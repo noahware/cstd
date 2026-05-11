@@ -9,9 +9,9 @@ namespace cstl
 		using first_type = First;
 		using second_type = Second;
 
-		pair() = default;
+		constexpr pair() noexcept = default;
 
-		explicit pair(const first_type& first_in, const second_type& second_in)
+		constexpr explicit pair(const first_type& first_in, const second_type& second_in) noexcept
 			:	first(first_in),
 				second(second_in) {}
 

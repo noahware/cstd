@@ -3,6 +3,7 @@
 #include "initializer_list.hpp"
 #include "type_traits.hpp"
 #include "crt.hpp"
+#include "utility.hpp"
 #include "types.hpp"
 
 namespace cstl
@@ -17,7 +18,6 @@ namespace cstl
 		using const_pointer = const value_type*;
 		using reference = value_type&;
 		using const_reference = const value_type&;
-		using rvalue_reference = value_type&&;
 
 		vector() = default;
 
@@ -172,14 +172,14 @@ namespace cstl
 			++size_;
 		}
 
-		void push_back(rvalue_reference value)
+		void push_back(value_type&& value)
 		{
 			if (max_size_ <= size_)
 			{
 				grow_elements();
 			}
 
-			new (elements_ + size_) T(static_cast<rvalue_reference>(value));
+			new (elements_ + size_) T(move(value));
 
 			++size_;
 		}
@@ -292,7 +292,7 @@ namespace cstl
 			{
 				for (size_type i = 0; i < size_; ++i)
 				{
-					new (new_elements + i) T(static_cast<rvalue_reference>(elements_[i]));
+					new (new_elements + i) T(move(elements_[i]));
 
 					elements_[i].~T();
 				}

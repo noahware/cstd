@@ -2,20 +2,11 @@
 #include "span.hpp"
 #include "array.hpp"
 #include "string.hpp"
+#include "utility.hpp"
 
 namespace cstl
 {
 	using hash_type = uint64_t;
-
-	template <class T, class Y>
-	[[nodiscard]] constexpr T bit_cast(const Y& object) noexcept
-	{
-		static_assert(sizeof(T) == sizeof(Y), "bit_cast types differ in size");
-		static_assert(is_trivially_copyable_v<T> && is_trivially_copyable_v<Y>,
-			"bit_cast requires types to be trivially copyable");
-
-		return __builtin_bit_cast(T, object);
-	}
 
 	template <class T>
 	constexpr static hash_type hash_bytes(const span<const T> input) noexcept

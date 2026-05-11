@@ -1,14 +1,18 @@
-#include "string.hpp"
-#include "hash.hpp"
+#include "optional.hpp"
 #include "types.hpp"
 
 cstl::int32_t main()
 {
-	constexpr cstl::string_view value = "nah";
-	constexpr cstl::string_view value2 = "nah";
+	cstl::optional<cstl::int32_t> x(5);
 
-	constexpr auto hash = cstl::hash<cstl::string_view>();
-	constexpr auto result = hash(value2);
+	x = cstl::nullopt;
 
-	return hash(value) == result;
+	if (x)
+	{
+		return *x * 2;
+	}
+
+	x = 9;
+
+	return *x;
 }
