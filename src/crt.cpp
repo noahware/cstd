@@ -79,3 +79,27 @@ void cstl::crt::memcpy(void* const destination, const void* const source, const 
 {
 	__movsb(static_cast<uint8_t*>(destination), static_cast<const uint8_t*>(source), size);
 }
+
+void cstl::crt::memset(void* const destination, const int32_t value, const size_t size)
+{
+	__stosb(static_cast<uint8_t*>(destination), static_cast<uint8_t>(value), size);
+}
+
+extern "C"
+{
+#pragma function(memset)
+	void* memset(void* const destination, const cstl::int32_t value, const size_t size)
+	{
+		cstl::crt::memset(destination, value, size);
+
+		return destination;
+	}
+
+#pragma function(memcpy)
+	void* memcpy(void* const destination, const void* const source, const size_t size)
+	{
+		cstl::crt::memcpy(destination, source, size);
+
+		return destination;
+	}
+}

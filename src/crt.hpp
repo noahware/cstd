@@ -13,6 +13,7 @@ namespace cstl::crt
 	void* malloc(size_t size);
 	void free(void* buffer);
 	void memcpy(void* destination, const void* source, size_t size);
+	void memset(void* destination, int32_t value, size_t size);
 
 	constexpr size_t strlen(const char* const str)
 	{

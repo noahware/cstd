@@ -31,6 +31,16 @@ namespace cstl
 			}
 		}
 
+		explicit vector(const const_pointer buffer, const size_type size)
+		{
+			reserve(size);
+
+			for (size_type i = 0; i < size; i++)
+			{
+				push_back(buffer[i]);
+			}
+		}
+
 		template <class Y>
 		vector(const initializer_list<Y> list)
 		{
@@ -42,8 +52,27 @@ namespace cstl
 			}
 		}
 
-		vector(const vector&) = delete;
-		vector& operator=(const vector&) = delete;
+		vector(const vector& right)
+		{
+			reserve(right.size());
+
+			for (size_type i = 0; i < right.size(); i++)
+			{
+				push_back(right[i]);
+			}
+		}
+
+		vector& operator=(const vector& right)
+		{
+			discard_elements();
+
+			reserve(right.size());
+
+			for (size_type i = 0; i < right.size(); i++)
+			{
+				push_back(right[i]);
+			}
+		}
 
 		vector(vector&& right) noexcept
 				:	elements_(right.elements_),

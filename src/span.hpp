@@ -1,5 +1,6 @@
 #pragma once
 #include "exception.hpp"
+#include "vector.hpp"
 #include "array.hpp"
 #include "types.hpp"
 
@@ -16,13 +17,17 @@ namespace cstl
 
 		constexpr span() noexcept = default;
 
-		constexpr explicit span(const pointer elements, const size_type count) noexcept
+		constexpr span(const pointer elements, const size_type count) noexcept
 				:	elements_(elements),
 					count_(count) { }
 
-		constexpr explicit span(const pointer elements_begin, const pointer elements_end) noexcept
+		constexpr span(const pointer elements_begin, const pointer elements_end) noexcept
 				:	elements_(elements_begin),
 					count_(static_cast<size_type>(elements_end - elements_begin)) { }
+
+		constexpr span(const vector<T>& elements) noexcept
+				:	elements_(elements.begin()),
+					count_(elements.size()) { }
 
 		template <class U, size_type Count>
 		constexpr span(const array<U, Count>& array) noexcept
