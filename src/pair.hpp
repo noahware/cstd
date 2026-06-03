@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cstl
+namespace cstd
 {
 	template <class First, class Second>
 	class pair

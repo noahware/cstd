@@ -4,7 +4,7 @@
 #include "exception.hpp"
 #include "string_view.hpp"
 
-namespace cstl
+namespace cstd
 {
 	template <class T>
 	class base_string
@@ -60,14 +60,14 @@ namespace cstl
 
 		[[nodiscard]] reference operator[](const size_type index)
 		{
-			CSTL_ASSERT(index < size(), "[base_string] attempted to access outside of range of data");
+			CSTD_ASSERT(index < size(), "[base_string] attempted to access outside of range of data");
 
 			return elements_[index];
 		}
 
 		[[nodiscard]] const_reference operator[](const size_type index) const
 		{
-			CSTL_ASSERT(index < size(), "[base_string] attempted to access outside of range of data");
+			CSTD_ASSERT(index < size(), "[base_string] attempted to access outside of range of data");
 
 			return elements_[index];
 		}

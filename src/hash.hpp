@@ -4,7 +4,7 @@
 #include "string.hpp"
 #include "utility.hpp"
 
-namespace cstl
+namespace cstd
 {
 	using hash_type = uint64_t;
 

@@ -6,7 +6,7 @@
 #include "utility.hpp"
 #include "types.hpp"
 
-namespace cstl
+namespace cstd
 {
 	template <class T>
 	class vector
@@ -131,42 +131,42 @@ namespace cstl
 
 		[[nodiscard]] reference front()
 		{
-			CSTL_ASSERT(!empty(), "[vector] front() called on an empty vector");
+			CSTD_ASSERT(!empty(), "[vector] front() called on an empty vector");
 
 			return *begin();
 		}
 
 		[[nodiscard]] const_reference front() const
 		{
-			CSTL_ASSERT(!empty(), "[vector] front() called on an empty vector");
+			CSTD_ASSERT(!empty(), "[vector] front() called on an empty vector");
 
 			return *begin();
 		}
 
 		[[nodiscard]] reference back()
 		{
-			CSTL_ASSERT(!empty(), "[vector] back() called on an empty vector");
+			CSTD_ASSERT(!empty(), "[vector] back() called on an empty vector");
 
 			return *(end() - 1);
 		}
 
 		[[nodiscard]] const_reference back() const
 		{
-			CSTL_ASSERT(!empty(), "[vector] back() called on an empty vector");
+			CSTD_ASSERT(!empty(), "[vector] back() called on an empty vector");
 
 			return *(end() - 1);
 		}
 
 		[[nodiscard]] reference operator[](const size_type index)
 		{
-			CSTL_ASSERT(index < size_, "[vector] attempted to access outside of range of elements");
+			CSTD_ASSERT(index < size_, "[vector] attempted to access outside of range of elements");
 
 			return elements_[index];
 		}
 
 		[[nodiscard]] const_reference operator[](const size_type index) const
 		{
-			CSTL_ASSERT(index < size_, "[vector] attempted to access outside of range of elements");
+			CSTD_ASSERT(index < size_, "[vector] attempted to access outside of range of elements");
 
 			return elements_[index];
 		}
@@ -235,7 +235,7 @@ namespace cstl
 
 		void pop_back()
 		{
-			CSTL_ASSERT(size_ != 0, "[vector] attempted to pop back empty vector");
+			CSTD_ASSERT(size_ != 0, "[vector] attempted to pop back empty vector");
 
 			size_--;
 
@@ -250,7 +250,7 @@ namespace cstl
 			{
 				pointer const new_elements = allocate_elements(size);
 
-				CSTL_ASSERT(new_elements != nullptr, "[vector] unable to reserve elements");
+				CSTD_ASSERT(new_elements != nullptr, "[vector] unable to reserve elements");
 
 				move_elements(new_elements);
 				free_elements();
@@ -306,7 +306,7 @@ namespace cstl
 
 			pointer const new_elements = allocate_elements(new_size);
 
-			CSTL_ASSERT(new_elements != nullptr, "[vector] unable to grow elements");
+			CSTD_ASSERT(new_elements != nullptr, "[vector] unable to grow elements");
 
 			move_elements(new_elements);
 			free_elements();
@@ -317,7 +317,7 @@ namespace cstl
 
 		size_type prepare_insert(const const_pointer position)
 		{
-			CSTL_ASSERT(begin() <= position && position <= end(), "[vector] insert position out of range");
+			CSTD_ASSERT(begin() <= position && position <= end(), "[vector] insert position out of range");
 
 			const size_type index = static_cast<size_type>(position - begin());
 

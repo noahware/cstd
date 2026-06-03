@@ -3,7 +3,7 @@
 #include "types.hpp"
 #include "vector.hpp"
 
-namespace cstl
+namespace cstd
 {
 	template <class Key, class T>
 	class flat_map
@@ -43,28 +43,28 @@ namespace cstl
 
 		[[nodiscard]] pointer front()
 		{
-			CSTL_ASSERT(!empty(), "[flat_map] front() called on an empty flat map");
+			CSTD_ASSERT(!empty(), "[flat_map] front() called on an empty flat map");
 
 			return begin();
 		}
 
 		[[nodiscard]] const_pointer front() const
 		{
-			CSTL_ASSERT(!empty(), "[flat_map] front() called on an empty flat map");
+			CSTD_ASSERT(!empty(), "[flat_map] front() called on an empty flat map");
 
 			return begin();
 		}
 
 		[[nodiscard]] pointer back()
 		{
-			CSTL_ASSERT(!empty(), "[flat_map] back() called on an empty flat map");
+			CSTD_ASSERT(!empty(), "[flat_map] back() called on an empty flat map");
 
 			return end() - 1;
 		}
 
 		[[nodiscard]] const_pointer back() const
 		{
-			CSTL_ASSERT(!empty(), "[flat_map] back() called on an empty flat map");
+			CSTD_ASSERT(!empty(), "[flat_map] back() called on an empty flat map");
 
 			return end() - 1;
 		}
@@ -87,7 +87,7 @@ namespace cstl
 		{
 			const_pointer entry = find(key);
 
-			CSTL_ASSERT(entry != nullptr, "[flat_map] unable to find key");
+			CSTD_ASSERT(entry != nullptr, "[flat_map] unable to find key");
 
 			return entry->second;
 		}

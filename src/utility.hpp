@@ -1,7 +1,7 @@
 #pragma once
 #include "type_traits.hpp"
 
-namespace cstl
+namespace cstd
 {
 	template <class T>
 	struct remove_reference
@@ -49,7 +49,7 @@ namespace cstl
 	template <class T>
 	constexpr T&& forward(remove_reference_t<T>&& object) noexcept
 	{
-		static_assert(!is_lvalue_reference_v<T>, "cstl::forward must not forward an rvalue as an lvalue");
+		static_assert(!is_lvalue_reference_v<T>, "cstd::forward must not forward an rvalue as an lvalue");
 
 		return static_cast<T&&>(object);
 	}

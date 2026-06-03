@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cstl
+namespace cstd
 {
     template <class T>
     inline constexpr bool is_trivially_destructible_v = __is_trivially_destructible(T);

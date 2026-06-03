@@ -4,7 +4,7 @@
 #include "array.hpp"
 #include "types.hpp"
 
-namespace cstl
+namespace cstd
 {
 	template <class T>
 	class span
@@ -46,7 +46,7 @@ namespace cstl
 
 		[[nodiscard]] constexpr reference operator[](const size_type index) const
 		{
-			CSTL_ASSERT(index < count_, "[span] attempted to access outside of range of elements");
+			CSTD_ASSERT(index < count_, "[span] attempted to access outside of range of elements");
 
 			return elements_[index];
 		}

@@ -3,14 +3,14 @@
 
 void* operator new(const size_t size)
 {
-	void* const buffer = cstl::crt::malloc(size);
+	void* const buffer = cstd::crt::malloc(size);
 
 	return buffer;
 }
 
 void* operator new[](const size_t size)
 {
-	void* const buffer = cstl::crt::malloc(size);
+	void* const buffer = cstd::crt::malloc(size);
 
 	return buffer;
 }
@@ -32,7 +32,7 @@ void operator delete(void* buffer) noexcept
 		return;
 	}
 
-	cstl::crt::free(buffer);
+	cstd::crt::free(buffer);
 }
 
 void operator delete(void* buffer, [[maybe_unused]] const size_t size) noexcept
@@ -42,7 +42,7 @@ void operator delete(void* buffer, [[maybe_unused]] const size_t size) noexcept
 		return;
 	}
 
-	cstl::crt::free(buffer);
+	cstd::crt::free(buffer);
 }
 
 void operator delete[](void* buffer) noexcept
@@ -52,7 +52,7 @@ void operator delete[](void* buffer) noexcept
 		return;
 	}
 
-	cstl::crt::free(buffer);
+	cstd::crt::free(buffer);
 }
 
 void operator delete[](void* buffer, [[maybe_unused]] const size_t size) noexcept
@@ -62,25 +62,25 @@ void operator delete[](void* buffer, [[maybe_unused]] const size_t size) noexcep
 		return;
 	}
 
-	cstl::crt::free(buffer);
+	cstd::crt::free(buffer);
 }
 
-void* cstl::crt::malloc(const size_t size)
+void* cstd::crt::malloc(const size_t size)
 {
 	return VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 }
 
-void cstl::crt::free(void* const buffer)
+void cstd::crt::free(void* const buffer)
 {
 	VirtualFree(buffer, 0, MEM_RELEASE);
 }
 
-void cstl::crt::memcpy(void* const destination, const void* const source, const size_t size)
+void cstd::crt::memcpy(void* const destination, const void* const source, const size_t size)
 {
 	__movsb(static_cast<uint8_t*>(destination), static_cast<const uint8_t*>(source), size);
 }
 
-void cstl::crt::memset(void* const destination, const int32_t value, const size_t size)
+void cstd::crt::memset(void* const destination, const int32_t value, const size_t size)
 {
 	__stosb(static_cast<uint8_t*>(destination), static_cast<uint8_t>(value), size);
 }
@@ -88,9 +88,9 @@ void cstl::crt::memset(void* const destination, const int32_t value, const size_
 extern "C"
 {
 #pragma function(memset)
-	void* memset(void* const destination, const cstl::int32_t value, const size_t size)
+	void* memset(void* const destination, const cstd::int32_t value, const size_t size)
 	{
-		cstl::crt::memset(destination, value, size);
+		cstd::crt::memset(destination, value, size);
 
 		return destination;
 	}
@@ -98,7 +98,7 @@ extern "C"
 #pragma function(memcpy)
 	void* memcpy(void* const destination, const void* const source, const size_t size)
 	{
-		cstl::crt::memcpy(destination, source, size);
+		cstd::crt::memcpy(destination, source, size);
 
 		return destination;
 	}

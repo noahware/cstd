@@ -1,16 +1,16 @@
 #pragma once
 #include "types.hpp"
 
-void* operator new(cstl::size_t size);
-void* operator new[](cstl::size_t size);
-void* operator new(cstl::size_t size, void* buffer) noexcept;
-void* operator new[](cstl::size_t size, void* buffer) noexcept;
+void* operator new(cstd::size_t size);
+void* operator new[](cstd::size_t size);
+void* operator new(cstd::size_t size, void* buffer) noexcept;
+void* operator new[](cstd::size_t size, void* buffer) noexcept;
 void operator delete(void* buffer) noexcept;
 void operator delete[](void* buffer) noexcept;
-void operator delete(void* buffer, cstl::size_t size) noexcept;
-void operator delete[](void* buffer, cstl::size_t size) noexcept;
+void operator delete(void* buffer, cstd::size_t size) noexcept;
+void operator delete[](void* buffer, cstd::size_t size) noexcept;
 
-namespace cstl::crt
+namespace cstd::crt
 {
 	void* malloc(size_t size);
 	void free(void* buffer);

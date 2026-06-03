@@ -2,7 +2,7 @@
 #include "crt.hpp"
 #include "exception.hpp"
 
-namespace cstl
+namespace cstd
 {
 	template <class T>
 	class base_string_view
@@ -35,7 +35,7 @@ namespace cstl
 
 		[[nodiscard]] constexpr const_reference operator[](const size_type index) const
 		{
-			CSTL_ASSERT(index < size_, "[base_string_view] attempted to access outside of range of data");
+			CSTD_ASSERT(index < size_, "[base_string_view] attempted to access outside of range of data");
 
 			return data_[index];
 		}

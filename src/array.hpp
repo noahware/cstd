@@ -3,7 +3,7 @@
 #include "crt.hpp"
 #include "types.hpp"
 
-namespace cstl
+namespace cstd
 {
 	template <class T, size_t Count>
 	class array
@@ -38,14 +38,14 @@ namespace cstl
 
 		[[nodiscard]] constexpr reference operator[](const size_type index)
 		{
-			CSTL_ASSERT(index < Count, "[array] attempted to access outside of range of elements");
+			CSTD_ASSERT(index < Count, "[array] attempted to access outside of range of elements");
 
 			return elements[index];
 		}
 
 		[[nodiscard]] constexpr const_reference operator[](const size_type index) const
 		{
-			CSTL_ASSERT(index < Count, "[array] attempted to access outside of range of elements");
+			CSTD_ASSERT(index < Count, "[array] attempted to access outside of range of elements");
 
 			return elements[index];
 		}

@@ -2,7 +2,7 @@
 #include "exception.hpp"
 #include "utility.hpp"
 
-namespace cstl
+namespace cstd
 {
 	struct nullopt_type
 	{
@@ -81,42 +81,42 @@ namespace cstl
 
 		[[nodiscard]] value_type* operator->() noexcept
 		{
-			CSTL_ASSERT(has_value_, "[optional] accessing non populated value");
+			CSTD_ASSERT(has_value_, "[optional] accessing non populated value");
 
 			return &value_;
 		}
 
 		[[nodiscard]] const value_type* operator->() const noexcept
 		{
-			CSTL_ASSERT(has_value_, "[optional] accessing non populated value");
+			CSTD_ASSERT(has_value_, "[optional] accessing non populated value");
 
 			return &value_;
 		}
 
 		[[nodiscard]] constexpr value_type& operator*() noexcept
 		{
-			CSTL_ASSERT(has_value_, "[optional] accessing non populated value");
+			CSTD_ASSERT(has_value_, "[optional] accessing non populated value");
 
 			return value_;
 		}
 
 		[[nodiscard]] constexpr const value_type& operator*() const noexcept
 		{
-			CSTL_ASSERT(has_value_, "[optional] accessing non populated value");
+			CSTD_ASSERT(has_value_, "[optional] accessing non populated value");
 
 			return value_;
 		}
 
 		[[nodiscard]] constexpr value_type& value() noexcept
 		{
-			CSTL_ASSERT(has_value_, "[optional] accessing non populated value");
+			CSTD_ASSERT(has_value_, "[optional] accessing non populated value");
 
 			return value_;
 		}
 
 		[[nodiscard]] constexpr const value_type& value() const noexcept
 		{
-			CSTL_ASSERT(has_value_, "[optional] accessing non populated value");
+			CSTD_ASSERT(has_value_, "[optional] accessing non populated value");
 
 			return value_;
 		}

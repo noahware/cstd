@@ -1,7 +1,7 @@
 #pragma once
 #include "types.hpp"
 
-namespace cstl
+namespace cstd
 {
 	template <class T>
 	class initializer_list

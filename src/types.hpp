@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <cstddef>
 
-namespace cstl
+namespace cstd
 {
 	using std::int8_t;
 	using std::int16_t;
@@ -23,5 +23,5 @@ namespace cstl
 	// (or absent, which is a compile error). The one assumption it does not cover:
 	// the containers do pointer arithmetic through size_t, so it must be pointer-
 	// width.
-	static_assert(sizeof(size_t) == sizeof(void*), "cstl: size_t must match pointer width");
+	static_assert(sizeof(size_t) == sizeof(void*), "cstd: size_t must match pointer width");
 }

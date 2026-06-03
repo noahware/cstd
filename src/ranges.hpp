@@ -1,7 +1,7 @@
 #pragma once
 #include "span.hpp"
 
-namespace cstl::ranges
+namespace cstd::ranges
 {
 	template <class T>
 	T* search(T* const begin, T* const end, const T& target)
@@ -22,7 +22,7 @@ namespace cstl::ranges
 	}
 
 	template <class T>
-	T* search(const cstl::span<T> span, const T& target)
+	T* search(const cstd::span<T> span, const T& target)
 	{
 		return search(span.begin(), span.end(), target);
 	}

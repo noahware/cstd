@@ -3,7 +3,7 @@
 #include "atomic.hpp"
 #include "utility.hpp"
 
-namespace cstl
+namespace cstd
 {
 	template <class T>
 	class base_ptr

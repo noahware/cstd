@@ -3,7 +3,7 @@
 #include "type_traits.hpp"
 #include "utility.hpp"
 
-namespace cstl
+namespace cstd
 {
 	// Memory-order values match the GCC/Clang __ATOMIC_* ABI so they can be passed
 	// straight through to the builtins on that path.
@@ -36,10 +36,10 @@ extern "C"
 #elif defined(__GNUC__) || defined(__clang__)
 	// __atomic_* are compiler builtins; no declarations required.
 #else
-	#error "cstl::atomic: unsupported compiler"
+	#error "cstd::atomic: unsupported compiler"
 #endif
 
-namespace cstl
+namespace cstd
 {
 	template <class T>
 	class atomic
@@ -54,9 +54,9 @@ namespace cstl
 		using value_type = T;
 
 		static_assert(is_trivially_copyable_v<T>,
-			"cstl::atomic<T> requires a trivially copyable type");
+			"cstd::atomic<T> requires a trivially copyable type");
 		static_assert(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8,
-			"cstl::atomic<T> supports 1, 2, 4 or 8 byte types");
+			"cstd::atomic<T> supports 1, 2, 4 or 8 byte types");
 
 		static constexpr bool is_always_lock_free = true;
 
@@ -178,7 +178,7 @@ namespace cstl
 
 		T fetch_add(const T operand, const memory_order order = memory_order::seq_cst) noexcept
 		{
-			static_assert(is_integral_v<T>, "cstl::atomic<T>::fetch_add requires an integral type");
+			static_assert(is_integral_v<T>, "cstd::atomic<T>::fetch_add requires an integral type");
 
 #if defined(_MSC_VER)
 			(void)order;
@@ -206,7 +206,7 @@ namespace cstl
 
 		T fetch_sub(const T operand, const memory_order order = memory_order::seq_cst) noexcept
 		{
-			static_assert(is_integral_v<T>, "cstl::atomic<T>::fetch_sub requires an integral type");
+			static_assert(is_integral_v<T>, "cstd::atomic<T>::fetch_sub requires an integral type");
 
 #if defined(_MSC_VER)
 			(void)order;
@@ -234,7 +234,7 @@ namespace cstl
 
 		T operator++() noexcept
 		{
-			static_assert(is_integral_v<T>, "cstl::atomic<T>::operator++ requires an integral type");
+			static_assert(is_integral_v<T>, "cstd::atomic<T>::operator++ requires an integral type");
 
 #if defined(_MSC_VER)
 			return static_cast<T>(fetch_add(static_cast<T>(1)) + static_cast<T>(1));
@@ -245,7 +245,7 @@ namespace cstl
 
 		T operator--() noexcept
 		{
-			static_assert(is_integral_v<T>, "cstl::atomic<T>::operator-- requires an integral type");
+			static_assert(is_integral_v<T>, "cstd::atomic<T>::operator-- requires an integral type");
 
 #if defined(_MSC_VER)
 			return static_cast<T>(fetch_sub(static_cast<T>(1)) - static_cast<T>(1));
