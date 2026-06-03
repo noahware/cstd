@@ -38,6 +38,57 @@ namespace cstd
 			elements_.push_back(T('\0'));
 		}
 
+		base_string& append(const_pointer const data, const size_type count)
+		{
+			append_raw(data, count);
+
+			return *this;
+		}
+
+		base_string& append(const base_string& other)
+		{
+			append_raw(other.data(), other.size());
+
+			return *this;
+		}
+
+		base_string& append(const character_type c)
+		{
+			push_back(c);
+
+			return *this;
+		}
+
+		base_string& operator+=(const base_string& other)
+		{
+			return append(other);
+		}
+
+		base_string& operator+=(const character_type c)
+		{
+			return append(c);
+		}
+
+		void clear()
+		{
+			elements_.clear();
+			elements_.push_back(T('\0'));
+		}
+
+		void resize(const size_type new_size, const character_type fill = T('\0'))
+		{
+			const size_type old_size = size();
+
+			elements_.resize(new_size + 1);
+
+			for (size_type i = old_size; i < new_size; ++i)
+			{
+				elements_[i] = fill;
+			}
+
+			elements_[new_size] = T('\0');
+		}
+
 		[[nodiscard]] pointer begin() noexcept
 		{
 			return elements_.begin();
@@ -82,6 +133,11 @@ namespace cstd
 			return elements_.data();
 		}
 
+		[[nodiscard]] const_pointer c_str() const noexcept
+		{
+			return elements_.data();
+		}
+
 		[[nodiscard]] size_type size() const
 		{
 			return elements_.size() - 1;
@@ -93,6 +149,14 @@ namespace cstd
 		}
 
 	protected:
+		void append_raw(const_pointer const data, const size_type count)
+		{
+			for (size_type i = 0; i < count; ++i)
+			{
+				push_back(data[i]);
+			}
+		}
+
 		vector<character_type> elements_;
 	};
 
@@ -103,6 +167,9 @@ namespace cstd
 		using pointer = character_type*;
 		using const_pointer = const character_type*;
 
+		using base_string<char>::append;
+		using base_string<char>::operator+=;
+
 		string() noexcept = default;
 
 		string(const_pointer const data) noexcept
@@ -110,6 +177,54 @@ namespace cstd
 
 		string(const_pointer const data, const size_type size) noexcept
 				:	base_string(data, size) {}
+
+		[[nodiscard]] string_view view() const noexcept
+		{
+			return string_view(data(), size());
+		}
+
+		operator string_view() const noexcept
+		{
+			return view();
+		}
+
+		string& append(const_pointer const data)
+		{
+			append_raw(data, crt::strlen(data));
+
+			return *this;
+		}
+
+		string& append(const string_view& view)
+		{
+			append_raw(view.data(), view.size());
+
+			return *this;
+		}
+
+		string& operator+=(const_pointer const data)
+		{
+			return append(data);
+		}
+
+		string& operator+=(const string_view& view)
+		{
+			return append(view);
+		}
+
+		[[nodiscard]] string substr(const size_type position = 0, size_type count = npos) const
+		{
+			CSTD_ASSERT(position <= size(), "[string] substr position out of range");
+
+			const size_type available = size() - position;
+
+			if (count > available)
+			{
+				count = available;
+			}
+
+			return string(data() + position, count);
+		}
 
 		[[nodiscard]] size_type find(const string_view& substr, const size_type offset = 0) const
 		{
@@ -128,11 +243,88 @@ namespace cstd
 			return find(substr) != npos;
 		}
 
-		bool operator==(const string_view& right) const
+		[[nodiscard]] bool starts_with(const string_view& prefix) const
 		{
-			return crt::strcmp(data(), right.data()) == 0;
+			return view().starts_with(prefix);
+		}
+
+		[[nodiscard]] bool starts_with(const character_type character) const
+		{
+			return view().starts_with(character);
+		}
+
+		[[nodiscard]] bool ends_with(const string_view& suffix) const
+		{
+			return view().ends_with(suffix);
+		}
+
+		[[nodiscard]] bool ends_with(const character_type character) const
+		{
+			return view().ends_with(character);
+		}
+
+		[[nodiscard]] bool operator==(const string_view& right) const
+		{
+			return view() == right;
+		}
+
+		[[nodiscard]] bool operator!=(const string_view& right) const
+		{
+			return view() != right;
+		}
+
+		[[nodiscard]] bool operator<(const string_view& right) const
+		{
+			return view() < right;
+		}
+
+		[[nodiscard]] bool operator>(const string_view& right) const
+		{
+			return view() > right;
+		}
+
+		[[nodiscard]] bool operator<=(const string_view& right) const
+		{
+			return view() <= right;
+		}
+
+		[[nodiscard]] bool operator>=(const string_view& right) const
+		{
+			return view() >= right;
 		}
 	};
+
+	[[nodiscard]] inline string operator+(const string& left, const string& right)
+	{
+		string result(left);
+		result.append(right);
+
+		return result;
+	}
+
+	[[nodiscard]] inline string operator+(const string& left, const string::const_pointer right)
+	{
+		string result(left);
+		result.append(right);
+
+		return result;
+	}
+
+	[[nodiscard]] inline string operator+(const string::const_pointer left, const string& right)
+	{
+		string result(left);
+		result.append(right);
+
+		return result;
+	}
+
+	[[nodiscard]] inline string operator+(const string& left, const string::character_type right)
+	{
+		string result(left);
+		result.push_back(right);
+
+		return result;
+	}
 
 	class wstring : public base_string<wchar_t>
 	{
@@ -141,6 +333,9 @@ namespace cstd
 		using pointer = character_type*;
 		using const_pointer = const character_type*;
 
+		using base_string<wchar_t>::append;
+		using base_string<wchar_t>::operator+=;
+
 		wstring() noexcept = default;
 
 		wstring(const_pointer const data) noexcept
@@ -148,6 +343,54 @@ namespace cstd
 
 		wstring(const_pointer const data, const size_type size) noexcept
 				:	base_string(data, size) {}
+
+		[[nodiscard]] wstring_view view() const noexcept
+		{
+			return wstring_view(data(), size());
+		}
+
+		operator wstring_view() const noexcept
+		{
+			return view();
+		}
+
+		wstring& append(const_pointer const data)
+		{
+			append_raw(data, crt::wcslen(data));
+
+			return *this;
+		}
+
+		wstring& append(const wstring_view& view)
+		{
+			append_raw(view.data(), view.size());
+
+			return *this;
+		}
+
+		wstring& operator+=(const_pointer const data)
+		{
+			return append(data);
+		}
+
+		wstring& operator+=(const wstring_view& view)
+		{
+			return append(view);
+		}
+
+		[[nodiscard]] wstring substr(const size_type position = 0, size_type count = npos) const
+		{
+			CSTD_ASSERT(position <= size(), "[wstring] substr position out of range");
+
+			const size_type available = size() - position;
+
+			if (count > available)
+			{
+				count = available;
+			}
+
+			return wstring(data() + position, count);
+		}
 
 		[[nodiscard]] size_type find(const wstring_view& substr, const size_type offset = 0) const
 		{
@@ -166,9 +409,86 @@ namespace cstd
 			return find(substr) != npos;
 		}
 
-		bool operator==(const wstring_view& right) const
+		[[nodiscard]] bool starts_with(const wstring_view& prefix) const
 		{
-			return crt::wcscmp(data(), right.data()) == 0;
+			return view().starts_with(prefix);
+		}
+
+		[[nodiscard]] bool starts_with(const character_type character) const
+		{
+			return view().starts_with(character);
+		}
+
+		[[nodiscard]] bool ends_with(const wstring_view& suffix) const
+		{
+			return view().ends_with(suffix);
+		}
+
+		[[nodiscard]] bool ends_with(const character_type character) const
+		{
+			return view().ends_with(character);
+		}
+
+		[[nodiscard]] bool operator==(const wstring_view& right) const
+		{
+			return view() == right;
+		}
+
+		[[nodiscard]] bool operator!=(const wstring_view& right) const
+		{
+			return view() != right;
+		}
+
+		[[nodiscard]] bool operator<(const wstring_view& right) const
+		{
+			return view() < right;
+		}
+
+		[[nodiscard]] bool operator>(const wstring_view& right) const
+		{
+			return view() > right;
+		}
+
+		[[nodiscard]] bool operator<=(const wstring_view& right) const
+		{
+			return view() <= right;
+		}
+
+		[[nodiscard]] bool operator>=(const wstring_view& right) const
+		{
+			return view() >= right;
 		}
 	};
+
+	[[nodiscard]] inline wstring operator+(const wstring& left, const wstring& right)
+	{
+		wstring result(left);
+		result.append(right);
+
+		return result;
+	}
+
+	[[nodiscard]] inline wstring operator+(const wstring& left, const wstring::const_pointer right)
+	{
+		wstring result(left);
+		result.append(right);
+
+		return result;
+	}
+
+	[[nodiscard]] inline wstring operator+(const wstring::const_pointer left, const wstring& right)
+	{
+		wstring result(left);
+		result.append(right);
+
+		return result;
+	}
+
+	[[nodiscard]] inline wstring operator+(const wstring& left, const wstring::character_type right)
+	{
+		wstring result(left);
+		result.push_back(right);
+
+		return result;
+	}
 }

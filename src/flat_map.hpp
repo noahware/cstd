@@ -2,9 +2,12 @@
 #include "pair.hpp"
 #include "types.hpp"
 #include "vector.hpp"
+#include "algorithm.hpp"
 
 namespace cstd
 {
+	// Entries are kept sorted by key, so lookups are O(log n) binary searches and
+	// insertions land at the sorted position. find() keeps the nullptr-on-miss contract.
 	template <class Key, class T>
 	class flat_map
 	{
@@ -29,6 +32,8 @@ namespace cstd
 			{
 				elements_.push_back(static_cast<value_type>(entry));
 			}
+
+			sort(elements_.begin(), elements_.end(), entry_less{});
 		}
 
 		[[nodiscard]] pointer begin() noexcept
@@ -37,6 +42,16 @@ namespace cstd
 		}
 
 		[[nodiscard]] pointer end() noexcept
+		{
+			return elements_.data() + elements_.size();
+		}
+
+		[[nodiscard]] const_pointer begin() const noexcept
+		{
+			return elements_.data();
+		}
+
+		[[nodiscard]] const_pointer end() const noexcept
 		{
 			return elements_.data() + elements_.size();
 		}
@@ -71,16 +86,18 @@ namespace cstd
 
 		[[nodiscard]] mapped_reference operator[](const key_type& key)
 		{
-			pointer entry = find(key);
+			pointer entry = lower_bound_entry(key);
 
-			if (!entry)
+			const size_type index = static_cast<size_type>(entry - begin());
+
+			if (entry != end() && entry->first == key)
 			{
-				elements_.push_back(value_type(key, {}));
-
-				entry = &elements_.back();
+				return entry->second;
 			}
 
-			return entry->second;
+			elements_.insert(elements_.begin() + index, value_type(key, mapped_type{}));
+
+			return elements_[index].second;
 		}
 
 		[[nodiscard]] const_mapped_reference operator[](const key_type& key) const
@@ -92,39 +109,81 @@ namespace cstd
 			return entry->second;
 		}
 
-		[[nodiscard]] pointer find(const key_type key)
+		[[nodiscard]] mapped_reference at(const key_type& key)
 		{
-			for (size_type i = 0; i < elements_.size(); i++)
-			{
-				pointer const entry = &elements_[i];
+			pointer entry = find(key);
 
-				if (key == entry->first)
-				{
-					return entry;
-				}
+			CSTD_ASSERT(entry != nullptr, "[flat_map] at() key not found");
+
+			return entry->second;
+		}
+
+		[[nodiscard]] const_mapped_reference at(const key_type& key) const
+		{
+			const_pointer entry = find(key);
+
+			CSTD_ASSERT(entry != nullptr, "[flat_map] at() key not found");
+
+			return entry->second;
+		}
+
+		[[nodiscard]] pointer find(const key_type& key)
+		{
+			pointer entry = lower_bound_entry(key);
+
+			if (entry != end() && entry->first == key)
+			{
+				return entry;
 			}
 
 			return nullptr;
 		}
 
-		[[nodiscard]] const_pointer find(const key_type key) const
+		[[nodiscard]] const_pointer find(const key_type& key) const
 		{
-			for (size_type i = 0; i < elements_.size(); i++)
-			{
-				const_pointer const entry = &elements_[i];
+			const value_type probe(key, mapped_type{});
+			const_pointer entry = lower_bound(begin(), end(), probe, entry_less{});
 
-				if (key == entry->first)
-				{
-					return entry;
-				}
+			if (entry != end() && entry->first == key)
+			{
+				return entry;
 			}
 
 			return nullptr;
+		}
+
+		[[nodiscard]] bool contains(const key_type& key) const
+		{
+			return find(key) != nullptr;
+		}
+
+		[[nodiscard]] size_type count(const key_type& key) const
+		{
+			return contains(key) ? 1 : 0;
+		}
+
+		size_type erase(const key_type& key)
+		{
+			pointer entry = find(key);
+
+			if (entry == nullptr)
+			{
+				return 0;
+			}
+
+			elements_.erase(entry);
+
+			return 1;
 		}
 
 		void clear()
 		{
 			elements_.clear();
+		}
+
+		[[nodiscard]] size_type size() const noexcept
+		{
+			return elements_.size();
 		}
 
 		[[nodiscard]] bool empty() const
@@ -133,6 +192,21 @@ namespace cstd
 		}
 
 	protected:
+		struct entry_less
+		{
+			[[nodiscard]] constexpr bool operator()(const value_type& left, const value_type& right) const
+			{
+				return left.first < right.first;
+			}
+		};
+
+		pointer lower_bound_entry(const key_type& key)
+		{
+			const value_type probe(key, mapped_type{});
+
+			return lower_bound(begin(), end(), probe, entry_less{});
+		}
+
 		vector<value_type> elements_;
 	};
 }

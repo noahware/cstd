@@ -19,64 +19,113 @@ namespace cstd
 	public:
 		using value_type = T;
 
-		constexpr optional() noexcept = default;
+		// The payload lives in an anonymous union, so a disengaged optional holds no
+		// constructed T. value_ is brought to life with placement-new only while
+		// engaged and explicitly destroyed on reset — never default-constructed.
+		constexpr optional() noexcept {}
 		constexpr optional(nullopt_type) noexcept {}
 
 		constexpr optional(T value) noexcept
 				:	has_value_(true),
 					value_(move(value)) { }
 
-		constexpr optional(const optional& right) noexcept
-				:	has_value_(right.has_value_),
-					value_(right.value_) { }
-
-		constexpr optional& operator=(T value) noexcept
+		optional(const optional& right)
 		{
-			value_ = move(value);
-			has_value_ = true;
+			if (right.has_value_)
+			{
+				new (&value_) value_type(right.value_);
+
+				has_value_ = true;
+			}
+		}
+
+		optional(optional&& right) noexcept
+		{
+			if (right.has_value_)
+			{
+				new (&value_) value_type(move(right.value_));
+
+				has_value_ = true;
+
+				right.reset();
+			}
+		}
+
+		optional& operator=(const optional& right)
+		{
+			if (this != &right)
+			{
+				if (right.has_value_)
+				{
+					assign(right.value_);
+				}
+				else
+				{
+					reset();
+				}
+			}
 
 			return *this;
 		}
 
-		constexpr optional& operator=(nullopt_type) noexcept
+		optional& operator=(optional&& right) noexcept
+		{
+			if (this != &right)
+			{
+				if (right.has_value_)
+				{
+					assign(move(right.value_));
+
+					right.reset();
+				}
+				else
+				{
+					reset();
+				}
+			}
+
+			return *this;
+		}
+
+		optional& operator=(T value)
+		{
+			assign(move(value));
+
+			return *this;
+		}
+
+		optional& operator=(nullopt_type)
 		{
 			reset();
 
 			return *this;
 		}
 
-		constexpr optional& operator=(const optional& right) noexcept
+		constexpr ~optional()
 		{
-			has_value_ = right.has_value_;
-			value_ = right.value_;
-
-			return *this;
-		}
-
-		constexpr optional(optional&& right) noexcept
-				:	has_value_(right.has_value_),
-					value_(move(right.value_))
-		{
-			right.reset();
-		}
-
-		constexpr optional& operator=(optional&& right) noexcept
-		{
-			if (this != &right)
-			{
-				value_ = move(right.value_);
-				has_value_ = right.has_value_;
-
-				right.reset();
-			}
-
-			return *this;
+			reset();
 		}
 
 		constexpr void reset()
 		{
-			value_ = { };
-			has_value_ = false;
+			if (has_value_)
+			{
+				value_.~value_type();
+
+				has_value_ = false;
+			}
+		}
+
+		template <class... Args>
+		value_type& emplace(Args&&... args)
+		{
+			reset();
+
+			new (&value_) value_type(forward<Args>(args)...);
+
+			has_value_ = true;
+
+			return value_;
 		}
 
 		[[nodiscard]] value_type* operator->() noexcept
@@ -131,8 +180,50 @@ namespace cstd
 			return has_value_;
 		}
 
+		[[nodiscard]] constexpr value_type value_or(value_type default_value) const&
+		{
+			return has_value_ ? value_ : move(default_value);
+		}
+
+		[[nodiscard]] constexpr value_type value_or(value_type default_value) &&
+		{
+			return has_value_ ? move(value_) : move(default_value);
+		}
+
 	protected:
+		void assign(const value_type& incoming)
+		{
+			if (has_value_)
+			{
+				value_ = incoming;
+			}
+			else
+			{
+				new (&value_) value_type(incoming);
+
+				has_value_ = true;
+			}
+		}
+
+		void assign(value_type&& incoming)
+		{
+			if (has_value_)
+			{
+				value_ = move(incoming);
+			}
+			else
+			{
+				new (&value_) value_type(move(incoming));
+
+				has_value_ = true;
+			}
+		}
+
 		bool has_value_ = false;
-		value_type value_ = { };
+
+		union
+		{
+			value_type value_;
+		};
 	};
 }

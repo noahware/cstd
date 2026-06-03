@@ -40,6 +40,20 @@ namespace cstd
 			return data_[index];
 		}
 
+		[[nodiscard]] constexpr const_reference front() const
+		{
+			CSTD_ASSERT(size_ != 0, "[base_string_view] front() called on an empty view");
+
+			return data_[0];
+		}
+
+		[[nodiscard]] constexpr const_reference back() const
+		{
+			CSTD_ASSERT(size_ != 0, "[base_string_view] back() called on an empty view");
+
+			return data_[size_ - 1];
+		}
+
 		[[nodiscard]] constexpr const_pointer data() const
 		{
 			return data_;
@@ -53,6 +67,21 @@ namespace cstd
 		[[nodiscard]] constexpr bool empty() const
 		{
 			return size_ == 0;
+		}
+
+		constexpr void remove_prefix(const size_type count)
+		{
+			CSTD_ASSERT(count <= size_, "[base_string_view] remove_prefix count exceeds size");
+
+			data_ += count;
+			size_ -= count;
+		}
+
+		constexpr void remove_suffix(const size_type count)
+		{
+			CSTD_ASSERT(count <= size_, "[base_string_view] remove_suffix count exceeds size");
+
+			size_ -= count;
 		}
 
 	protected:
@@ -87,14 +116,123 @@ namespace cstd
 			return found - data();
 		}
 
+		[[nodiscard]] constexpr size_type rfind(const string_view& needle, const size_type offset = npos) const
+		{
+			if (needle.size() > size())
+			{
+				return npos;
+			}
+
+			size_type last_start = size() - needle.size();
+
+			if (offset < last_start)
+			{
+				last_start = offset;
+			}
+
+			for (size_type i = last_start + 1; i-- > 0; )
+			{
+				if (crt::strncmp(data() + i, needle.data(), needle.size()) == 0)
+				{
+					return i;
+				}
+			}
+
+			return npos;
+		}
+
+		[[nodiscard]] constexpr size_type find_first_of(const string_view& set, const size_type offset = 0) const
+		{
+			for (size_type i = offset; i < size(); ++i)
+			{
+				for (size_type j = 0; j < set.size(); ++j)
+				{
+					if ((*this)[i] == set[j])
+					{
+						return i;
+					}
+				}
+			}
+
+			return npos;
+		}
+
+		[[nodiscard]] constexpr string_view substr(const size_type position = 0, size_type count = npos) const
+		{
+			CSTD_ASSERT(position <= size(), "[string_view] substr position out of range");
+
+			const size_type available = size() - position;
+
+			if (count > available)
+			{
+				count = available;
+			}
+
+			return string_view(data() + position, count);
+		}
+
 		[[nodiscard]] constexpr bool contains(const string_view& substr) const
 		{
 			return find(substr) != npos;
 		}
 
+		[[nodiscard]] constexpr bool starts_with(const string_view& prefix) const
+		{
+			return prefix.size() <= size() && crt::strncmp(data(), prefix.data(), prefix.size()) == 0;
+		}
+
+		[[nodiscard]] constexpr bool starts_with(const character_type character) const
+		{
+			return !empty() && front() == character;
+		}
+
+		[[nodiscard]] constexpr bool ends_with(const string_view& suffix) const
+		{
+			return suffix.size() <= size()
+				&& crt::strncmp(data() + (size() - suffix.size()), suffix.data(), suffix.size()) == 0;
+		}
+
+		[[nodiscard]] constexpr bool ends_with(const character_type character) const
+		{
+			return !empty() && back() == character;
+		}
+
 		[[nodiscard]] constexpr bool operator==(const string_view& right) const
 		{
-			return crt::strcmp(data(), right.data()) == 0;
+			return size() == right.size() && crt::strncmp(data(), right.data(), size()) == 0;
+		}
+
+		[[nodiscard]] constexpr bool operator!=(const string_view& right) const
+		{
+			return !(*this == right);
+		}
+
+		[[nodiscard]] constexpr bool operator<(const string_view& right) const
+		{
+			const size_type min_size = size() < right.size() ? size() : right.size();
+			const int32_t result = crt::strncmp(data(), right.data(), min_size);
+
+			if (result != 0)
+			{
+				return result < 0;
+			}
+
+			return size() < right.size();
+		}
+
+		[[nodiscard]] constexpr bool operator>(const string_view& right) const
+		{
+			return right < *this;
+		}
+
+		[[nodiscard]] constexpr bool operator<=(const string_view& right) const
+		{
+			return !(right < *this);
+		}
+
+		[[nodiscard]] constexpr bool operator>=(const string_view& right) const
+		{
+			return !(*this < right);
 		}
 	};
 
@@ -125,14 +263,123 @@ namespace cstd
 			return found - data();
 		}
 
+		[[nodiscard]] constexpr size_type rfind(const wstring_view& needle, const size_type offset = npos) const
+		{
+			if (needle.size() > size())
+			{
+				return npos;
+			}
+
+			size_type last_start = size() - needle.size();
+
+			if (offset < last_start)
+			{
+				last_start = offset;
+			}
+
+			for (size_type i = last_start + 1; i-- > 0; )
+			{
+				if (crt::wcsncmp(data() + i, needle.data(), needle.size()) == 0)
+				{
+					return i;
+				}
+			}
+
+			return npos;
+		}
+
+		[[nodiscard]] constexpr size_type find_first_of(const wstring_view& set, const size_type offset = 0) const
+		{
+			for (size_type i = offset; i < size(); ++i)
+			{
+				for (size_type j = 0; j < set.size(); ++j)
+				{
+					if ((*this)[i] == set[j])
+					{
+						return i;
+					}
+				}
+			}
+
+			return npos;
+		}
+
+		[[nodiscard]] constexpr wstring_view substr(const size_type position = 0, size_type count = npos) const
+		{
+			CSTD_ASSERT(position <= size(), "[wstring_view] substr position out of range");
+
+			const size_type available = size() - position;
+
+			if (count > available)
+			{
+				count = available;
+			}
+
+			return wstring_view(data() + position, count);
+		}
+
 		[[nodiscard]] constexpr bool contains(const wstring_view& substr) const
 		{
 			return find(substr) != npos;
 		}
 
+		[[nodiscard]] constexpr bool starts_with(const wstring_view& prefix) const
+		{
+			return prefix.size() <= size() && crt::wcsncmp(data(), prefix.data(), prefix.size()) == 0;
+		}
+
+		[[nodiscard]] constexpr bool starts_with(const character_type character) const
+		{
+			return !empty() && front() == character;
+		}
+
+		[[nodiscard]] constexpr bool ends_with(const wstring_view& suffix) const
+		{
+			return suffix.size() <= size()
+				&& crt::wcsncmp(data() + (size() - suffix.size()), suffix.data(), suffix.size()) == 0;
+		}
+
+		[[nodiscard]] constexpr bool ends_with(const character_type character) const
+		{
+			return !empty() && back() == character;
+		}
+
 		[[nodiscard]] constexpr bool operator==(const wstring_view& right) const
 		{
-			return crt::wcscmp(data(), right.data()) == 0;
+			return size() == right.size() && crt::wcsncmp(data(), right.data(), size()) == 0;
+		}
+
+		[[nodiscard]] constexpr bool operator!=(const wstring_view& right) const
+		{
+			return !(*this == right);
+		}
+
+		[[nodiscard]] constexpr bool operator<(const wstring_view& right) const
+		{
+			const size_type min_size = size() < right.size() ? size() : right.size();
+			const int32_t result = crt::wcsncmp(data(), right.data(), min_size);
+
+			if (result != 0)
+			{
+				return result < 0;
+			}
+
+			return size() < right.size();
+		}
+
+		[[nodiscard]] constexpr bool operator>(const wstring_view& right) const
+		{
+			return right < *this;
+		}
+
+		[[nodiscard]] constexpr bool operator<=(const wstring_view& right) const
+		{
+			return !(right < *this);
+		}
+
+		[[nodiscard]] constexpr bool operator>=(const wstring_view& right) const
+		{
+			return !(*this < right);
 		}
 	};
 }

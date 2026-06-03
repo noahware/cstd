@@ -171,6 +171,20 @@ namespace cstd
 			return elements_[index];
 		}
 
+		[[nodiscard]] reference at(const size_type index)
+		{
+			CSTD_ASSERT(index < size_, "[vector] at() index out of range");
+
+			return elements_[index];
+		}
+
+		[[nodiscard]] const_reference at(const size_type index) const
+		{
+			CSTD_ASSERT(index < size_, "[vector] at() index out of range");
+
+			return elements_[index];
+		}
+
 		[[nodiscard]] size_type size() const noexcept
 		{
 			return size_;
@@ -215,9 +229,26 @@ namespace cstd
 			++size_;
 		}
 
+		template <class... Args>
+		reference emplace_back(Args&&... args)
+		{
+			if (max_size_ <= size_)
+			{
+				grow_elements();
+			}
+
+			pointer const slot = elements_ + size_;
+
+			new (slot) T(forward<Args>(args)...);
+
+			++size_;
+
+			return *slot;
+		}
+
 		pointer insert(const const_pointer position, const_reference value)
 		{
-			const size_type index = prepare_insert(position);
+			const size_type index = prepare_insert_range(position, 1);
 
 			new (elements_ + index) T(value);
 
@@ -226,9 +257,22 @@ namespace cstd
 
 		pointer insert(const const_pointer position, value_type&& value)
 		{
-			const size_type index = prepare_insert(position);
+			const size_type index = prepare_insert_range(position, 1);
 
 			new (elements_ + index) T(move(value));
+
+			return elements_ + index;
+		}
+
+		pointer insert(const const_pointer position, const const_pointer first, const const_pointer last)
+		{
+			const size_type count = static_cast<size_type>(last - first);
+			const size_type index = prepare_insert_range(position, count);
+
+			for (size_type i = 0; i < count; ++i)
+			{
+				new (elements_ + index + i) T(first[i]);
+			}
 
 			return elements_ + index;
 		}
@@ -242,6 +286,35 @@ namespace cstd
 			const auto current = elements_ + size_;
 
 			deconstruct_elements(current, current + 1);
+		}
+
+		pointer erase(const const_pointer position) noexcept
+		{
+			return erase(position, position + 1);
+		}
+
+		pointer erase(const const_pointer first, const const_pointer last) noexcept
+		{
+			CSTD_ASSERT(begin() <= first && first <= last && last <= end(), "[vector] erase range out of range");
+
+			const size_type index = static_cast<size_type>(first - begin());
+			const size_type count = static_cast<size_type>(last - first);
+
+			if (count == 0)
+			{
+				return begin() + index;
+			}
+
+			for (size_type i = index; i + count < size_; ++i)
+			{
+				elements_[i] = move(elements_[i + count]);
+			}
+
+			deconstruct_elements(elements_ + (size_ - count), elements_ + size_);
+
+			size_ -= count;
+
+			return begin() + index;
 		}
 
 		void reserve(const size_type size)
@@ -285,6 +358,69 @@ namespace cstd
 			size_ = new_size;
 		}
 
+		void assign(const size_type count, const_reference value)
+		{
+			clear();
+			reserve(count);
+
+			for (size_type i = 0; i < count; ++i)
+			{
+				push_back(value);
+			}
+		}
+
+		void assign(const const_pointer first, const const_pointer last)
+		{
+			const size_type count = static_cast<size_type>(last - first);
+
+			clear();
+			reserve(count);
+
+			for (size_type i = 0; i < count; ++i)
+			{
+				push_back(first[i]);
+			}
+		}
+
+		template <class Y>
+		void assign(const initializer_list<Y> list)
+		{
+			clear();
+			reserve(list.size());
+
+			for (const Y& entry : list)
+			{
+				push_back(static_cast<value_type>(entry));
+			}
+		}
+
+		void shrink_to_fit()
+		{
+			if (size_ == max_size_)
+			{
+				return;
+			}
+
+			if (size_ == 0)
+			{
+				free_elements();
+
+				max_size_ = 0;
+
+				return;
+			}
+
+			pointer const new_elements = allocate_elements(size_);
+
+			CSTD_ASSERT(new_elements != nullptr, "[vector] unable to shrink elements");
+
+			move_elements(new_elements);
+			free_elements();
+
+			elements_ = new_elements;
+			max_size_ = size_;
+		}
+
 		void clear() noexcept
 		{
 			deconstruct_elements(begin(), end());
@@ -315,30 +451,55 @@ namespace cstd
 			max_size_ = new_size;
 		}
 
-		size_type prepare_insert(const const_pointer position)
+		size_type prepare_insert_range(const const_pointer position, const size_type count)
 		{
 			CSTD_ASSERT(begin() <= position && position <= end(), "[vector] insert position out of range");
 
 			const size_type index = static_cast<size_type>(position - begin());
 
-			if (max_size_ <= size_)
+			if (count == 0)
 			{
-				grow_elements();
+				return index;
 			}
 
-			if (index < size_)
+			if (max_size_ < size_ + count)
 			{
-				new (elements_ + size_) T(move(elements_[size_ - 1]));
+				size_type target = max_size_ ? max_size_ * growth_factor : 1;
 
-				for (size_type i = size_ - 1; i > index; --i)
+				if (target < size_ + count)
 				{
-					elements_[i] = move(elements_[i - 1]);
+					target = size_ + count;
 				}
 
-				deconstruct_elements(elements_ + index, elements_ + index + 1);
+				reserve(target);
 			}
 
-			++size_;
+			const size_type new_size = size_ + count;
+
+			// Shift the tail right by `count`, walking high-to-low so a source is read
+			// before it is overwritten. Slots at or past the old size_ are raw
+			// (move-construct); slots still inside the old range are live (move-assign).
+			for (size_type destination = new_size; destination-- > index + count; )
+			{
+				const size_type source = destination - count;
+
+				if (destination >= size_)
+				{
+					new (elements_ + destination) T(move(elements_[source]));
+				}
+				else
+				{
+					elements_[destination] = move(elements_[source]);
+				}
+			}
+
+			// The hole [index, index + count) now holds moved-from live objects only
+			// where it overlaps the old range; destroy those so the caller can construct.
+			const size_type live_hole_end = (index + count < size_) ? (index + count) : size_;
+
+			deconstruct_elements(elements_ + index, elements_ + live_hole_end);
+
+			size_ = new_size;
 
 			return index;
 		}
@@ -412,4 +573,68 @@ namespace cstd
 		size_type size_ = 0;
 		size_type max_size_ = 0;
 	};
+
+	template <class T>
+	[[nodiscard]] bool operator==(const vector<T>& left, const vector<T>& right) noexcept
+	{
+		if (left.size() != right.size())
+		{
+			return false;
+		}
+
+		for (typename vector<T>::size_type i = 0; i < left.size(); ++i)
+		{
+			if (!(left[i] == right[i]))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	template <class T>
+	[[nodiscard]] bool operator!=(const vector<T>& left, const vector<T>& right) noexcept
+	{
+		return !(left == right);
+	}
+
+	template <class T>
+	[[nodiscard]] bool operator<(const vector<T>& left, const vector<T>& right) noexcept
+	{
+		const typename vector<T>::size_type min_size = left.size() < right.size() ? left.size() : right.size();
+
+		for (typename vector<T>::size_type i = 0; i < min_size; ++i)
+		{
+			if (left[i] < right[i])
+			{
+				return true;
+			}
+
+			if (right[i] < left[i])
+			{
+				return false;
+			}
+		}
+
+		return left.size() < right.size();
+	}
+
+	template <class T>
+	[[nodiscard]] bool operator>(const vector<T>& left, const vector<T>& right) noexcept
+	{
+		return right < left;
+	}
+
+	template <class T>
+	[[nodiscard]] bool operator<=(const vector<T>& left, const vector<T>& right) noexcept
+	{
+		return !(right < left);
+	}
+
+	template <class T>
+	[[nodiscard]] bool operator>=(const vector<T>& left, const vector<T>& right) noexcept
+	{
+		return !(left < right);
+	}
 }

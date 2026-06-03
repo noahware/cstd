@@ -154,6 +154,7 @@
     <ClCompile Include="tests\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\algorithm.hpp" />
     <ClInclude Include="src\atomic.hpp" />
     <ClInclude Include="src\array.hpp" />
     <ClInclude Include="src\exception.hpp" />

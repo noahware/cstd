@@ -15,6 +15,8 @@ namespace cstd
 		using pointer = value_type*;
 		using reference = value_type&;
 
+		constexpr static size_type npos = static_cast<size_type>(-1);
+
 		constexpr span() noexcept = default;
 
 		constexpr span(const pointer elements, const size_type count) noexcept
@@ -51,14 +53,58 @@ namespace cstd
 			return elements_[index];
 		}
 
+		[[nodiscard]] constexpr reference front() const
+		{
+			CSTD_ASSERT(count_ != 0, "[span] front() called on an empty span");
+
+			return elements_[0];
+		}
+
+		[[nodiscard]] constexpr reference back() const
+		{
+			CSTD_ASSERT(count_ != 0, "[span] back() called on an empty span");
+
+			return elements_[count_ - 1];
+		}
+
 		[[nodiscard]] constexpr size_type size() const noexcept
 		{
 			return count_;
 		}
 
+		[[nodiscard]] constexpr bool empty() const noexcept
+		{
+			return count_ == 0;
+		}
+
 		[[nodiscard]] constexpr pointer data() const noexcept
 		{
 			return elements_;
+		}
+
+		[[nodiscard]] constexpr span first(const size_type count) const noexcept
+		{
+			CSTD_ASSERT(count <= count_, "[span] first() count exceeds span size");
+
+			return span(elements_, count);
+		}
+
+		[[nodiscard]] constexpr span last(const size_type count) const noexcept
+		{
+			CSTD_ASSERT(count <= count_, "[span] last() count exceeds span size");
+
+			return span(elements_ + (count_ - count), count);
+		}
+
+		[[nodiscard]] constexpr span subspan(const size_type offset, const size_type count = npos) const noexcept
+		{
+			CSTD_ASSERT(offset <= count_, "[span] subspan() offset exceeds span size");
+
+			const size_type length = (count == npos) ? (count_ - offset) : count;
+
+			CSTD_ASSERT(length <= count_ - offset, "[span] subspan() range exceeds span size");
+
+			return span(elements_ + offset, length);
 		}
 
 	protected:
