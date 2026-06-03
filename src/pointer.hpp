@@ -1,6 +1,7 @@
 #pragma once
 #include "types.hpp"
 #include "atomic.hpp"
+#include "utility.hpp"
 
 namespace cstl
 {
@@ -217,17 +218,17 @@ namespace cstl
 	};
 
 	template <class T, class... Args>
-	unique_ptr<T> make_unique(Args... args)
+	unique_ptr<T> make_unique(Args&&... args)
 	{
-		T* object = new T(args...);
+		T* object = new T(forward<Args>(args)...);
 
 		return unique_ptr<T>(object);
 	}
 
 	template <class T, class... Args>
-	shared_ptr<T> make_shared(Args... args)
+	shared_ptr<T> make_shared(Args&&... args)
 	{
-		T* object = new T(args...);
+		T* object = new T(forward<Args>(args)...);
 		auto* count = new atomic<typename shared_ptr<T>::size_type>(1);
 
 		return shared_ptr<T>(object, count);

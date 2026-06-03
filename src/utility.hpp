@@ -39,4 +39,53 @@ namespace cstl
 	{
 		return static_cast<remove_reference_t<T>&&>(object);
 	}
+
+	template <class T>
+	constexpr T&& forward(remove_reference_t<T>& object) noexcept
+	{
+		return static_cast<T&&>(object);
+	}
+
+	template <class T>
+	constexpr T&& forward(remove_reference_t<T>&& object) noexcept
+	{
+		static_assert(!is_lvalue_reference_v<T>, "cstl::forward must not forward an rvalue as an lvalue");
+
+		return static_cast<T&&>(object);
+	}
+
+	template <class T>
+	constexpr void swap(T& left, T& right) noexcept
+	{
+		T temp = move(left);
+		left = move(right);
+		right = move(temp);
+	}
+
+	template <class T, class U = T>
+	constexpr T exchange(T& object, U&& new_value)
+	{
+		T old_value = move(object);
+		object = forward<U>(new_value);
+
+		return old_value;
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr const T& min(const T& left, const T& right) noexcept
+	{
+		return right < left ? right : left;
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr const T& max(const T& left, const T& right) noexcept
+	{
+		return left < right ? right : left;
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr const T& clamp(const T& value, const T& low, const T& high) noexcept
+	{
+		return value < low ? low : (high < value ? high : value);
+	}
 }

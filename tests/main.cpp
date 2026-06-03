@@ -7,6 +7,9 @@
 #include "string_view.hpp"
 #include "span.hpp"
 #include "hash.hpp"
+#include "limits.hpp"
+#include "utility.hpp"
+#include "type_traits.hpp"
 #include "exception.hpp"
 #include "types.hpp"
 
@@ -240,6 +243,66 @@ cstl::int32_t main()
 		}
 
 		CSTL_ASSERT(sq->sides_ == 4, "[test] shared_ptr object must outlive a dropped converting copy");
+	}
+
+	// ---- foundational utilities ----
+	{
+		// Records how it was constructed, to prove perfect forwarding moves rather than copies.
+		struct probe
+		{
+			cstl::int32_t copies_ = 0;
+			cstl::int32_t moves_ = 0;
+
+			probe() = default;
+			probe(const probe& other) noexcept : copies_(other.copies_ + 1), moves_(other.moves_) { }
+			probe(probe&& other) noexcept : copies_(other.copies_), moves_(other.moves_ + 1) { }
+		};
+
+		// forward: a pure rvalue must be moved into make_unique, never copied.
+		cstl::unique_ptr<probe> forwarded = cstl::make_unique<probe>(probe{});
+		CSTL_ASSERT(forwarded->copies_ == 0, "[test] forward moves an rvalue (no copy)");
+		CSTL_ASSERT(forwarded->moves_ == 1, "[test] forward move-constructs exactly once");
+
+		// swap
+		cstl::vector<cstl::int32_t> left;
+		left.push_back(1);
+		cstl::vector<cstl::int32_t> right;
+		right.push_back(9);
+		right.push_back(8);
+		cstl::swap(left, right);
+		CSTL_ASSERT(left.size() == 2 && left[0] == 9 && right.size() == 1 && right[0] == 1, "[test] swap exchanges contents");
+
+		// exchange
+		cstl::int32_t slot = 3;
+		const cstl::int32_t previous = cstl::exchange(slot, 7);
+		CSTL_ASSERT(previous == 3 && slot == 7, "[test] exchange returns old and stores new");
+
+		// min / max / clamp
+		CSTL_ASSERT(cstl::min(2, 5) == 2 && cstl::max(2, 5) == 5, "[test] min/max");
+		CSTL_ASSERT(cstl::clamp(10, 0, 5) == 5 && cstl::clamp(-1, 0, 5) == 0 && cstl::clamp(3, 0, 5) == 3, "[test] clamp");
+
+		// numeric_limits
+		CSTL_ASSERT(cstl::numeric_limits<cstl::uint8_t>::max() == 255, "[test] uint8 max");
+		CSTL_ASSERT(cstl::numeric_limits<cstl::uint8_t>::min() == 0, "[test] uint8 min");
+		CSTL_ASSERT(cstl::numeric_limits<cstl::int32_t>::max() == 2147483647, "[test] int32 max");
+		CSTL_ASSERT(cstl::numeric_limits<cstl::int32_t>::is_signed, "[test] int32 is signed");
+		CSTL_ASSERT(!cstl::numeric_limits<cstl::uint32_t>::is_signed, "[test] uint32 is unsigned");
+
+		// compile-time trait checks
+		struct trait_base { };
+		struct trait_derived : trait_base { };
+
+		static_assert(cstl::is_lvalue_reference_v<int&>, "is_lvalue_reference");
+		static_assert(!cstl::is_lvalue_reference_v<int>, "is_lvalue_reference negative");
+		static_assert(cstl::is_rvalue_reference_v<int&&>, "is_rvalue_reference");
+		static_assert(cstl::is_pointer_v<int*>, "is_pointer");
+		static_assert(cstl::is_void_v<const void>, "is_void");
+		static_assert(cstl::is_same_v<cstl::decay_t<const int&>, int>, "decay");
+		static_assert(cstl::is_same_v<cstl::remove_pointer_t<int* const>, int>, "remove_pointer");
+		static_assert(cstl::is_base_of_v<trait_base, trait_derived>, "is_base_of");
+		static_assert(!cstl::is_base_of_v<trait_derived, trait_base>, "is_base_of negative");
+		static_assert(cstl::is_convertible_v<trait_derived*, trait_base*>, "is_convertible");
+		static_assert(!cstl::is_convertible_v<trait_base*, trait_derived*>, "is_convertible negative");
 	}
 
 	*owner = 7;
