@@ -166,6 +166,24 @@ cstl::int32_t main()
 		CSTL_ASSERT(destination.size() == 2 && destination[0] == 1 && destination[1] == 2,
 			"[test] vector copy-assignment must copy the elements");
 
+		// insert: middle (lvalue -> copy overload), front and end (rvalue -> move overload).
+		cstl::vector<cstl::int32_t> numbers;
+		numbers.push_back(10);
+		numbers.push_back(30);
+
+		const cstl::int32_t middle = 20;
+		cstl::vector<cstl::int32_t>::pointer inserted = numbers.insert(numbers.begin() + 1, middle);
+
+		CSTL_ASSERT(inserted == numbers.begin() + 1 && *inserted == 20, "[test] insert returns the new element");
+		CSTL_ASSERT(numbers.size() == 3 && numbers[0] == 10 && numbers[1] == 20 && numbers[2] == 30,
+			"[test] insert shifts elements right");
+
+		numbers.insert(numbers.begin(), 5);
+		numbers.insert(numbers.end(), 40);
+
+		CSTL_ASSERT(numbers.size() == 5 && numbers[0] == 5 && numbers[4] == 40,
+			"[test] insert at front and end");
+
 		// Bugs 2 & 3: flat_map operator[] missing-key insert and existing-key update.
 		cstl::flat_map<cstl::int32_t, cstl::int32_t> map;
 		map[1] = 10;
@@ -197,11 +215,11 @@ cstl::int32_t main()
 		cstl::span<cstl::int32_t> from_array(fixed);
 		CSTL_ASSERT(from_array.size() == 3 && from_array[2] == 7, "[test] span from array");
 
-		// Bug E: non-const string_view begin()/end() must compile and span the data.
+		// string_view is a read-only view: begin()/end() yield const_pointer.
 		char buffer[] = "hi";
 		cstl::string_view view(buffer);
-		cstl::string_view::pointer first = view.begin();
-		CSTL_ASSERT(view.end() - first == 2 && *first == 'h', "[test] string_view non-const begin/end");
+		cstl::string_view::const_pointer first = view.begin();
+		CSTL_ASSERT(view.end() - first == 2 && *first == 'h', "[test] string_view begin/end span the data");
 
 		// Bug F: generic hash<T> must compile and be deterministic.
 		cstl::hash<cstl::int32_t> hasher;

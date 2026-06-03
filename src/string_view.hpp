@@ -23,16 +23,6 @@ namespace cstl
 				:	data_(data),
 					size_(size) {}
 
-		[[nodiscard]] constexpr pointer begin() noexcept
-		{
-			return const_cast<pointer>(data_);
-		}
-
-		[[nodiscard]] constexpr pointer end() noexcept
-		{
-			return const_cast<pointer>(data_) + size_;
-		}
-
 		[[nodiscard]] constexpr const_pointer begin() const noexcept
 		{
 			return data_;
@@ -41,13 +31,6 @@ namespace cstl
 		[[nodiscard]] constexpr const_pointer end() const noexcept
 		{
 			return data_ + size_;
-		}
-
-		[[nodiscard]] constexpr reference operator[](const size_type index)
-		{
-			CSTL_ASSERT(index < size_, "[base_string_view] attempted to access outside of range of data");
-
-			return const_cast<pointer>(data_)[index];
 		}
 
 		[[nodiscard]] constexpr const_reference operator[](const size_type index) const

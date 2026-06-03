@@ -215,6 +215,24 @@ namespace cstl
 			++size_;
 		}
 
+		pointer insert(const const_pointer position, const_reference value)
+		{
+			const size_type index = prepare_insert(position);
+
+			new (elements_ + index) T(value);
+
+			return elements_ + index;
+		}
+
+		pointer insert(const const_pointer position, value_type&& value)
+		{
+			const size_type index = prepare_insert(position);
+
+			new (elements_ + index) T(move(value));
+
+			return elements_ + index;
+		}
+
 		void pop_back()
 		{
 			CSTL_ASSERT(size_ != 0, "[vector] attempted to pop back empty vector");
@@ -295,6 +313,34 @@ namespace cstl
 
 			elements_ = new_elements;
 			max_size_ = new_size;
+		}
+
+		size_type prepare_insert(const const_pointer position)
+		{
+			CSTL_ASSERT(begin() <= position && position <= end(), "[vector] insert position out of range");
+
+			const size_type index = static_cast<size_type>(position - begin());
+
+			if (max_size_ <= size_)
+			{
+				grow_elements();
+			}
+
+			if (index < size_)
+			{
+				new (elements_ + size_) T(move(elements_[size_ - 1]));
+
+				for (size_type i = size_ - 1; i > index; --i)
+				{
+					elements_[i] = move(elements_[i - 1]);
+				}
+
+				deconstruct_elements(elements_ + index, elements_ + index + 1);
+			}
+
+			++size_;
+
+			return index;
 		}
 
 		void deconstruct_elements(pointer const start, pointer const end)
