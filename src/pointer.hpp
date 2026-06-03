@@ -1,5 +1,6 @@
 #pragma once
 #include "types.hpp"
+#include "atomic.hpp"
 
 namespace cstl
 {
@@ -112,7 +113,7 @@ namespace cstl
 
 		shared_ptr() noexcept = default;
 		
-		explicit shared_ptr(const pointer object, size_type* const reference_count)
+		explicit shared_ptr(const pointer object, atomic<size_type>* const reference_count)
 				:	base_ptr<T>(object),
 					reference_count_(reference_count) { }
 
@@ -120,7 +121,10 @@ namespace cstl
 				:	base_ptr<T>(right.object_),
 					reference_count_(right.reference_count_)
 		{
-			++(*reference_count_);
+			if (reference_count_)
+			{
+				reference_count_->fetch_add(1, memory_order::relaxed);
+			}
 		}
 
 		// add derived class support to cast
@@ -128,7 +132,14 @@ namespace cstl
 
 		template <class U>
 		shared_ptr(const shared_ptr<U>& right) noexcept
-				:	shared_ptr(right.object_, right.reference_count_) { }
+				:	base_ptr<T>(right.object_),
+					reference_count_(right.reference_count_)
+		{
+			if (reference_count_)
+			{
+				reference_count_->fetch_add(1, memory_order::relaxed);
+			}
+		}
 
 		template <class U>
 		shared_ptr(shared_ptr<U>&& right) noexcept
@@ -148,7 +159,10 @@ namespace cstl
 				this->object_ = right.object_;
 				reference_count_ = right.reference_count_;
 
-				++(*reference_count_);
+				if (reference_count_)
+				{
+					reference_count_->fetch_add(1, memory_order::relaxed);
+				}
 			}
 
 			return *this;
@@ -187,7 +201,7 @@ namespace cstl
 		{
 			if (reference_count_)
 			{
-				if (--(*reference_count_) == 0)
+				if (reference_count_->fetch_sub(1, memory_order::acq_rel) == 1)
 				{
 					delete this->object_;
 					delete reference_count_;
@@ -199,8 +213,7 @@ namespace cstl
 		}
 
 	protected:
-		// todo: make cstl::atomic<size_type>*
-		size_type* reference_count_ = nullptr;
+		atomic<size_type>* reference_count_ = nullptr;
 	};
 
 	template <class T, class... Args>
@@ -215,7 +228,7 @@ namespace cstl
 	shared_ptr<T> make_shared(Args... args)
 	{
 		T* object = new T(args...);
-		auto* count = new typename shared_ptr<T>::size_type(1);
+		auto* count = new atomic<typename shared_ptr<T>::size_type>(1);
 
 		return shared_ptr<T>(object, count);
 	}
