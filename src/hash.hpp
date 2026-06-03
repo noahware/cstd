@@ -13,7 +13,7 @@ namespace cstl
 	{
 		static_assert(sizeof(T) == sizeof(byte), "T must be size of byte");
 
-		constexpr hash_type basis = 0xCF29CE484222325;
+		constexpr hash_type basis = 0xcbf29ce484222325;
 		constexpr hash_type prime = 0x100000001B3;
 
 		hash_type output = basis;
@@ -40,7 +40,7 @@ namespace cstl
 			using bytes_type = array<byte, sizeof(T)>;
 			const bytes_type bytes = bit_cast<bytes_type>(value);
 
-			return hash_bytes(bytes);
+			return hash_bytes(span<const byte>{ bytes.data(), bytes.size() });
 		}
 	};
 

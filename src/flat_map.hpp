@@ -77,13 +77,13 @@ namespace cstl
 			{
 				elements_.push_back(value_type(key, {}));
 
-				entry = elements_.back();
+				entry = &elements_.back();
 			}
 
 			return entry->second;
 		}
 
-		[[nodiscard]] const_reference operator[](const key_type& key) const
+		[[nodiscard]] const_mapped_reference operator[](const key_type& key) const
 		{
 			const_pointer entry = find(key);
 

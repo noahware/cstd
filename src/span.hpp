@@ -25,12 +25,12 @@ namespace cstl
 				:	elements_(elements_begin),
 					count_(static_cast<size_type>(elements_end - elements_begin)) { }
 
-		constexpr span(const vector<T>& elements) noexcept
+		constexpr span(vector<T>& elements) noexcept
 				:	elements_(elements.begin()),
 					count_(elements.size()) { }
 
 		template <class U, size_type Count>
-		constexpr span(const array<U, Count>& array) noexcept
+		constexpr span(array<U, Count>& array) noexcept
 				:	elements_(array.data()),
 					count_(Count) { }
 

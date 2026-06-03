@@ -1,5 +1,12 @@
 #include "atomic.hpp"
 #include "pointer.hpp"
+#include "vector.hpp"
+#include "array.hpp"
+#include "flat_map.hpp"
+#include "string.hpp"
+#include "string_view.hpp"
+#include "span.hpp"
+#include "hash.hpp"
 #include "exception.hpp"
 #include "types.hpp"
 
@@ -143,6 +150,78 @@ cstl::int32_t main()
 	if (*owner != 42)
 	{
 		return 20;
+	}
+
+	// ---- bug-fix verification: each scenario instantiates a fixed template path ----
+	{
+		// Bug 1: vector copy-assignment must return *this and copy the elements.
+		cstl::vector<cstl::int32_t> source;
+		source.push_back(1);
+		source.push_back(2);
+
+		cstl::vector<cstl::int32_t> destination;
+		cstl::vector<cstl::int32_t>& assigned = (destination = source);
+
+		CSTL_ASSERT(&assigned == &destination, "[test] vector copy-assignment must return *this");
+		CSTL_ASSERT(destination.size() == 2 && destination[0] == 1 && destination[1] == 2,
+			"[test] vector copy-assignment must copy the elements");
+
+		// Bugs 2 & 3: flat_map operator[] missing-key insert and existing-key update.
+		cstl::flat_map<cstl::int32_t, cstl::int32_t> map;
+		map[1] = 10;
+		map[2] = 20;
+		map[1] = 11;
+
+		CSTL_ASSERT(map[1] == 11, "[test] flat_map existing-key update");
+		CSTL_ASSERT(map[2] == 20, "[test] flat_map missing-key insert");
+
+		// Bugs A & B: default string is empty and NUL-terminated; push_back keeps the trailing NUL.
+		cstl::string empty;
+		CSTL_ASSERT(empty.size() == 0 && empty.empty() && empty.data()[0] == '\0',
+			"[test] default string must be empty and NUL-terminated");
+
+		cstl::string text;
+		text.push_back('a');
+		text.push_back('b');
+		text.push_back('c');
+
+		CSTL_ASSERT(text.size() == 3, "[test] string push_back must grow size");
+		CSTL_ASSERT(text.data()[0] == 'a' && text.data()[1] == 'b' && text.data()[2] == 'c'
+			&& text.data()[3] == '\0', "[test] string push_back must keep content and trailing NUL");
+
+		// Bug D: span must construct from a non-const vector and array.
+		cstl::span<cstl::int32_t> from_vector(source);
+		CSTL_ASSERT(from_vector.size() == 2 && from_vector[1] == 2, "[test] span from vector");
+
+		cstl::array<cstl::int32_t, 3> fixed{ 5, 6, 7 };
+		cstl::span<cstl::int32_t> from_array(fixed);
+		CSTL_ASSERT(from_array.size() == 3 && from_array[2] == 7, "[test] span from array");
+
+		// Bug E: non-const string_view begin()/end() must compile and span the data.
+		char buffer[] = "hi";
+		cstl::string_view view(buffer);
+		cstl::string_view::pointer first = view.begin();
+		CSTL_ASSERT(view.end() - first == 2 && *first == 'h', "[test] string_view non-const begin/end");
+
+		// Bug F: generic hash<T> must compile and be deterministic.
+		cstl::hash<cstl::int32_t> hasher;
+		CSTL_ASSERT(hasher(42) == hasher(42), "[test] hash must be deterministic");
+	}
+
+	// Bug C: shared_ptr cross-type (converting) copy must increment the refcount.
+	{
+		struct shape { cstl::int32_t sides_ = 0; };
+		struct square : shape { };
+
+		cstl::shared_ptr<square> sq = cstl::make_shared<square>();
+		sq->sides_ = 4;
+
+		{
+			cstl::shared_ptr<shape> sh = sq;   // converting copy: must share ownership
+			CSTL_ASSERT(sh->sides_ == 4, "[test] shared_ptr converting copy must share the object");
+		}
+
+		CSTL_ASSERT(sq->sides_ == 4, "[test] shared_ptr object must outlive a dropped converting copy");
 	}
 
 	*owner = 7;

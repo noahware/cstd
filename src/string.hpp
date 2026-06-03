@@ -19,7 +19,10 @@ namespace cstl
 
 		constexpr static size_type npos = static_cast<size_type>(-1);
 
-		base_string()  noexcept = default;
+		base_string() noexcept
+		{
+			elements_.push_back(T('\0'));
+		}
 
 		explicit base_string(const_pointer const data, const size_type size) noexcept
 				:	elements_(size + 1)
@@ -31,7 +34,8 @@ namespace cstl
 
 		void push_back(const character_type c)
 		{
-			elements_.push_back(c);
+			elements_.back() = c;
+			elements_.push_back(T('\0'));
 		}
 
 		[[nodiscard]] pointer begin() noexcept

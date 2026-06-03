@@ -72,6 +72,8 @@ namespace cstl
 			{
 				push_back(right[i]);
 			}
+
+			return *this;
 		}
 
 		vector(vector&& right) noexcept

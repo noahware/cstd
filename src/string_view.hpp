@@ -25,12 +25,12 @@ namespace cstl
 
 		[[nodiscard]] constexpr pointer begin() noexcept
 		{
-			return data_;
+			return const_cast<pointer>(data_);
 		}
 
 		[[nodiscard]] constexpr pointer end() noexcept
 		{
-			return data_ + size_;
+			return const_cast<pointer>(data_) + size_;
 		}
 
 		[[nodiscard]] constexpr const_pointer begin() const noexcept
