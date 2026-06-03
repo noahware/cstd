@@ -29,6 +29,11 @@ namespace cstl
 			elements_[size] = T('\0');
 		}
 
+		void push_back(const character_type c)
+		{
+			elements_.push_back(c);
+		}
+
 		[[nodiscard]] pointer begin() noexcept
 		{
 			return elements_.begin();
