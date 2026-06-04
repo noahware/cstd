@@ -1,5 +1,6 @@
 #include "atomic.hpp"
 #include "pointer.hpp"
+#include "mutex.hpp"
 #include "vector.hpp"
 #include "array.hpp"
 #include "pair.hpp"
@@ -737,6 +738,140 @@ static void test_flat_map()
 		"[test] flat_map initializer_list is sorted");
 }
 
+static void test_mutex()
+{
+	cstd::mutex m;
+	CSTD_ASSERT(m.try_lock(), "[mutex] fresh try_lock acquires");
+	CSTD_ASSERT(!m.try_lock(), "[mutex] try_lock fails while held");
+	m.unlock();
+	CSTD_ASSERT(m.try_lock(), "[mutex] try_lock succeeds after unlock");
+	m.unlock();
+
+	m.lock();
+	CSTD_ASSERT(!m.try_lock(), "[mutex] lock() holds the mutex");
+	m.unlock();
+	CSTD_ASSERT(m.try_lock(), "[mutex] unlock() releases the mutex");
+	m.unlock();
+
+	// lock_guard locks on construction and releases at scope exit.
+	cstd::mutex guarded;
+	{
+		cstd::lock_guard<cstd::mutex> lock(guarded);
+		CSTD_ASSERT(!guarded.try_lock(), "[mutex] lock_guard holds during scope");
+	}
+	CSTD_ASSERT(guarded.try_lock(), "[mutex] lock_guard releases at scope exit");
+	guarded.unlock();
+
+	// adopt_lock: caller already holds the mutex; guard adopts and unlocks on exit.
+	guarded.lock();
+	{
+		cstd::lock_guard<cstd::mutex> adopted(guarded, cstd::adopt_lock);
+		CSTD_ASSERT(!guarded.try_lock(), "[mutex] adopted guard keeps the lock held");
+	}
+	CSTD_ASSERT(guarded.try_lock(), "[mutex] adopted guard releases at scope exit");
+	guarded.unlock();
+
+	static_assert(cstd::is_same_v<cstd::lock_guard<cstd::mutex>::mutex_type, cstd::mutex>,
+		"lock_guard exposes mutex_type");
+}
+
+static void test_unique_lock()
+{
+	cstd::mutex m;
+
+	// Default-constructed: no associated mutex, not owning.
+	cstd::unique_lock<cstd::mutex> empty;
+	CSTD_ASSERT(!empty.owns_lock(), "[unique_lock] default does not own");
+	CSTD_ASSERT(empty.mutex() == nullptr, "[unique_lock] default has no mutex");
+	CSTD_ASSERT(!static_cast<bool>(empty), "[unique_lock] default is falsy");
+
+	// Locking constructor takes ownership; destructor releases it.
+	{
+		cstd::unique_lock<cstd::mutex> lock(m);
+		CSTD_ASSERT(lock.owns_lock(), "[unique_lock] ctor locks");
+		CSTD_ASSERT(lock.mutex() == &m, "[unique_lock] ctor records mutex");
+		CSTD_ASSERT(static_cast<bool>(lock), "[unique_lock] owning lock is truthy");
+		CSTD_ASSERT(!m.try_lock(), "[unique_lock] mutex held during scope");
+	}
+	CSTD_ASSERT(m.try_lock(), "[unique_lock] dtor unlocks");
+	m.unlock();
+
+	// defer_lock: associate without locking; lock()/unlock() drive ownership.
+	{
+		cstd::unique_lock<cstd::mutex> lock(m, cstd::defer_lock);
+		CSTD_ASSERT(!lock.owns_lock(), "[unique_lock] defer does not lock");
+		lock.lock();
+		CSTD_ASSERT(lock.owns_lock(), "[unique_lock] lock() acquires");
+		lock.unlock();
+		CSTD_ASSERT(!lock.owns_lock(), "[unique_lock] unlock() releases");
+	}
+
+	// try_to_lock: acquires a free mutex, fails on a held one.
+	{
+		cstd::unique_lock<cstd::mutex> lock(m, cstd::try_to_lock);
+		CSTD_ASSERT(lock.owns_lock(), "[unique_lock] try_to_lock acquires free mutex");
+	}
+	m.lock();
+	{
+		cstd::unique_lock<cstd::mutex> lock(m, cstd::try_to_lock);
+		CSTD_ASSERT(!lock.owns_lock(), "[unique_lock] try_to_lock fails on held mutex");
+	}
+	m.unlock();
+
+	// adopt_lock: caller already holds it; guard adopts and unlocks on exit.
+	m.lock();
+	{
+		cstd::unique_lock<cstd::mutex> lock(m, cstd::adopt_lock);
+		CSTD_ASSERT(lock.owns_lock(), "[unique_lock] adopt owns");
+	}
+	CSTD_ASSERT(m.try_lock(), "[unique_lock] adopt releases at scope exit");
+	m.unlock();
+
+	// Move construction transfers ownership; the source goes empty.
+	{
+		cstd::unique_lock<cstd::mutex> source(m);
+		cstd::unique_lock<cstd::mutex> sink(cstd::move(source));
+		CSTD_ASSERT(!source.owns_lock() && source.mutex() == nullptr, "[unique_lock] move empties source");
+		CSTD_ASSERT(sink.owns_lock() && sink.mutex() == &m, "[unique_lock] move transfers ownership");
+	}
+	CSTD_ASSERT(m.try_lock(), "[unique_lock] moved-to lock unlocks at scope exit");
+	m.unlock();
+
+	// Move assignment unlocks the prior lock, then adopts the source.
+	{
+		cstd::unique_lock<cstd::mutex> a(m);
+		cstd::unique_lock<cstd::mutex> b;
+		b = cstd::move(a);
+		CSTD_ASSERT(b.owns_lock() && !a.owns_lock(), "[unique_lock] move-assign transfers");
+	}
+	CSTD_ASSERT(m.try_lock(), "[unique_lock] move-assign target unlocks at scope exit");
+	m.unlock();
+
+	// release() detaches the association WITHOUT unlocking: the mutex stays held.
+	{
+		cstd::unique_lock<cstd::mutex> lock(m);
+		cstd::mutex* raw = lock.release();
+		CSTD_ASSERT(raw == &m, "[unique_lock] release returns the mutex");
+		CSTD_ASSERT(!lock.owns_lock(), "[unique_lock] release drops ownership");
+		CSTD_ASSERT(!m.try_lock(), "[unique_lock] release does NOT unlock");
+		raw->unlock();
+	}
+	CSTD_ASSERT(m.try_lock(), "[unique_lock] mutex usable after manual unlock");
+	m.unlock();
+
+	// swap exchanges ownership and association both ways.
+	{
+		cstd::unique_lock<cstd::mutex> held(m);
+		cstd::unique_lock<cstd::mutex> other;
+		held.swap(other);
+		CSTD_ASSERT(other.owns_lock() && !held.owns_lock(), "[unique_lock] member swap moves ownership");
+		cstd::swap(held, other);
+		CSTD_ASSERT(held.owns_lock() && !other.owns_lock(), "[unique_lock] free swap moves it back");
+	}
+	CSTD_ASSERT(m.try_lock(), "[unique_lock] swapped lock unlocks at scope exit");
+	m.unlock();
+}
+
 cstd::int32_t main()
 {
 	// atomic<size_t> exercises the 8-byte integral path.
@@ -888,6 +1023,8 @@ cstd::int32_t main()
 	test_algorithm_modifying();
 	test_algorithm_sorted();
 	test_flat_map();
+	test_mutex();
+	test_unique_lock();
 
 	*owner = 7;
 

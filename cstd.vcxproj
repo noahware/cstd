@@ -163,6 +163,7 @@
     <ClInclude Include="src\hash.hpp" />
     <ClInclude Include="src\initializer_list.hpp" />
     <ClInclude Include="src\crt.hpp" />
+    <ClInclude Include="src\mutex.hpp" />
     <ClInclude Include="src\optional.hpp" />
     <ClInclude Include="src\pair.hpp" />
     <ClInclude Include="src\pointer.hpp" />

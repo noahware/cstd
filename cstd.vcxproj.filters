@@ -80,6 +80,9 @@
     <ClInclude Include="src\optional.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\mutex.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="src\utility.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

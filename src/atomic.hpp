@@ -26,12 +26,15 @@ extern "C"
 	short   _InterlockedCompareExchange16(short volatile*,   short,   short);
 	long    _InterlockedCompareExchange  (long volatile*,    long,    long);
 	__int64 _InterlockedCompareExchange64(__int64 volatile*, __int64, __int64);
+
+	void _mm_pause(void);
 }
 
 #pragma intrinsic(_InterlockedCompareExchange8)
 #pragma intrinsic(_InterlockedCompareExchange16)
 #pragma intrinsic(_InterlockedCompareExchange)
 #pragma intrinsic(_InterlockedCompareExchange64)
+#pragma intrinsic(_mm_pause)
 
 #elif defined(__GNUC__) || defined(__clang__)
 	// __atomic_* are compiler builtins; no declarations required.
@@ -41,6 +44,23 @@ extern "C"
 
 namespace cstd
 {
+	// Spin-wait CPU relaxation hint (x86/x64 PAUSE, AArch64 YIELD). Yields the pipeline
+	// inside a busy wait so a spinlock does not saturate the core or starve a sibling
+	// hyperthread. A pure hint: omitting it stays correct, only less friendly. Lives in
+	// this header because atomic.hpp is the compiler/arch seam; mutex.hpp calls it.
+	inline void cpu_relax() noexcept
+	{
+#if defined(_MSC_VER)
+		_mm_pause();
+#elif (defined(__GNUC__) || defined(__clang__)) && (defined(__i386__) || defined(__x86_64__))
+		__builtin_ia32_pause();
+#elif (defined(__GNUC__) || defined(__clang__)) && defined(__aarch64__)
+		__asm__ __volatile__("yield" ::: "memory");
+#else
+		// No relax primitive for this target; a plain busy spin is still correct.
+#endif
+	}
+
 	template <class T>
 	class atomic
 	{
