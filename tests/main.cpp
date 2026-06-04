@@ -4,6 +4,7 @@
 #include "array.hpp"
 #include "pair.hpp"
 #include "optional.hpp"
+#include "expected.hpp"
 #include "algorithm.hpp"
 #include "ranges.hpp"
 #include "flat_map.hpp"
@@ -452,6 +453,74 @@ static void test_optional()
 	static_assert(compile_time.has_value() && *compile_time == 5, "optional constexpr value");
 }
 
+static void test_expected()
+{
+	CSTD_ASSERT(lifetime_probe::live == 0, "[test] probe baseline before expected");
+
+	cstd::expected<cstd::int32_t, cstd::int32_t> ok(5);
+	CSTD_ASSERT(ok.has_value() && static_cast<bool>(ok), "[test] expected value is engaged");
+	CSTD_ASSERT(*ok == 5 && ok.value() == 5, "[test] expected value access");
+	CSTD_ASSERT(ok.value_or(0) == 5, "[test] expected value_or returns the value");
+
+	cstd::expected<point, cstd::int32_t> pt(point{ 3, 4 });
+	CSTD_ASSERT(pt->x == 3 && pt->y == 4, "[test] expected operator->");
+
+	cstd::expected<cstd::int32_t, cstd::int32_t> err(cstd::unexpected<cstd::int32_t>(42));
+	CSTD_ASSERT(!err.has_value() && !err, "[test] expected error is disengaged");
+	CSTD_ASSERT(err.error() == 42, "[test] expected error access");
+	CSTD_ASSERT(err.value_or(99) == 99, "[test] expected value_or returns the default on error");
+
+	cstd::expected<point, cstd::int32_t> in_place_value(cstd::in_place, point{ 1, 2 });
+	CSTD_ASSERT(in_place_value.has_value() && in_place_value->x == 1 && in_place_value->y == 2,
+		"[test] expected in_place construction");
+
+	cstd::expected<point, cstd::int32_t> unexpect_error(cstd::unexpect, 7);
+	CSTD_ASSERT(!unexpect_error.has_value() && unexpect_error.error() == 7,
+		"[test] expected unexpect construction");
+
+	{
+		cstd::expected<lifetime_probe, cstd::int32_t> value_state(cstd::in_place, 3);
+		CSTD_ASSERT(value_state.has_value() && value_state->value == 3 && lifetime_probe::live == 1,
+			"[test] expected holds one live value");
+	}
+	CSTD_ASSERT(lifetime_probe::live == 0, "[test] expected destroys the value member");
+
+	{
+		cstd::expected<cstd::int32_t, lifetime_probe> error_state(cstd::unexpect, 4);
+		CSTD_ASSERT(!error_state.has_value() && error_state.error().value == 4 && lifetime_probe::live == 1,
+			"[test] expected holds one live error");
+	}
+	CSTD_ASSERT(lifetime_probe::live == 0, "[test] expected destroys the error member");
+
+	{
+		cstd::expected<cstd::int32_t, lifetime_probe> source(cstd::unexpect, 8);
+		lifetime_probe::copies = 0;
+		cstd::expected<cstd::int32_t, lifetime_probe> copy = source;
+		CSTD_ASSERT(!copy.has_value() && copy.error().value == 8 && lifetime_probe::copies == 1,
+			"[test] expected copy duplicates the active error once");
+	}
+	CSTD_ASSERT(lifetime_probe::live == 0, "[test] expected copies balanced");
+
+	cstd::expected<void, cstd::int32_t> good;
+	good.value();
+	CSTD_ASSERT(good.has_value() && static_cast<bool>(good), "[test] expected<void> success");
+
+	cstd::expected<void, cstd::int32_t> bad(cstd::unexpect, 9);
+	CSTD_ASSERT(!bad.has_value() && bad.error() == 9, "[test] expected<void> error");
+
+	cstd::expected<cstd::int32_t, cstd::int32_t> ok_twin(5);
+	CSTD_ASSERT(ok == ok_twin, "[test] expected equality");
+	CSTD_ASSERT(err == cstd::unexpected<cstd::int32_t>(42), "[test] expected == unexpected");
+	CSTD_ASSERT(ok != err, "[test] expected value != error");
+
+	constexpr cstd::expected<cstd::int32_t, cstd::int32_t> compile_value(5);
+	static_assert(compile_value.has_value() && *compile_value == 5, "expected constexpr value");
+	constexpr cstd::expected<cstd::int32_t, cstd::int32_t> compile_error(cstd::unexpect, 1);
+	static_assert(!compile_error.has_value() && compile_error.error() == 1, "expected constexpr error");
+
+	CSTD_ASSERT(lifetime_probe::live == 0, "[test] expected probe balanced at end");
+}
+
 static void test_algorithm_nonmodifying()
 {
 	cstd::int32_t values[] = { 3, 1, 4, 1, 5, 9, 2, 6 };
@@ -813,6 +882,7 @@ cstd::int32_t main()
 	test_leaf_types();
 	test_string();
 	test_optional();
+	test_expected();
 	test_algorithm_nonmodifying();
 	test_ranges();
 	test_algorithm_modifying();

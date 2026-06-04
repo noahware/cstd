@@ -44,6 +44,9 @@
     <ClInclude Include="src\exception.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\expected.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="src\ranges.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
