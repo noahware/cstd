@@ -50,7 +50,13 @@
     <ClInclude Include="src\ranges.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\bitset.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="src\flat_map.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\list.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\pair.hpp">
@@ -84,6 +90,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\utility.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\limits.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

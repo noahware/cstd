@@ -1,6 +1,8 @@
-#include "atomic.hpp"
+﻿#include "atomic.hpp"
 #include "pointer.hpp"
 #include "mutex.hpp"
+#include "function.hpp"
+#include "list.hpp"
 #include "vector.hpp"
 #include "array.hpp"
 #include "pair.hpp"
@@ -25,8 +27,6 @@ struct point
 	cstd::int16_t y;
 };
 
-// Tracks live instance count + copy/move counts to prove containers run
-// destructors and construct elements in place rather than copying.
 struct lifetime_probe
 {
 	static cstd::int32_t live;
@@ -48,13 +48,8 @@ cstd::int32_t lifetime_probe::live = 0;
 cstd::int32_t lifetime_probe::copies = 0;
 cstd::int32_t lifetime_probe::moves = 0;
 
-// Each test scenario lives in its own function so no single stack frame grows
-// large enough to need __chkstk (unavailable under /NODEFAULTLIB). A failed
-// CSTD_ASSERT traps; reaching the end of main means every scenario passed.
-
 static void test_bug_fixes()
 {
-	// Bug 1: vector copy-assignment must return *this and copy the elements.
 	cstd::vector<cstd::int32_t> source;
 	source.push_back(1);
 	source.push_back(2);
@@ -66,7 +61,6 @@ static void test_bug_fixes()
 	CSTD_ASSERT(destination.size() == 2 && destination[0] == 1 && destination[1] == 2,
 		"[test] vector copy-assignment must copy the elements");
 
-	// insert: middle (lvalue -> copy overload), front and end (rvalue -> move overload).
 	cstd::vector<cstd::int32_t> numbers;
 	numbers.push_back(10);
 	numbers.push_back(30);
@@ -84,7 +78,6 @@ static void test_bug_fixes()
 	CSTD_ASSERT(numbers.size() == 5 && numbers[0] == 5 && numbers[4] == 40,
 		"[test] insert at front and end");
 
-	// Bugs 2 & 3: flat_map operator[] missing-key insert and existing-key update.
 	cstd::flat_map<cstd::int32_t, cstd::int32_t> map;
 	map[1] = 10;
 	map[2] = 20;
@@ -93,7 +86,6 @@ static void test_bug_fixes()
 	CSTD_ASSERT(map[1] == 11, "[test] flat_map existing-key update");
 	CSTD_ASSERT(map[2] == 20, "[test] flat_map missing-key insert");
 
-	// Bugs A & B: default string is empty and NUL-terminated; push_back keeps the trailing NUL.
 	cstd::string empty;
 	CSTD_ASSERT(empty.size() == 0 && empty.empty() && empty.data()[0] == '\0',
 		"[test] default string must be empty and NUL-terminated");
@@ -107,7 +99,6 @@ static void test_bug_fixes()
 	CSTD_ASSERT(text.data()[0] == 'a' && text.data()[1] == 'b' && text.data()[2] == 'c'
 		&& text.data()[3] == '\0', "[test] string push_back must keep content and trailing NUL");
 
-	// Bug D: span must construct from a non-const vector and array.
 	cstd::span<cstd::int32_t> from_vector(source);
 	CSTD_ASSERT(from_vector.size() == 2 && from_vector[1] == 2, "[test] span from vector");
 
@@ -115,20 +106,17 @@ static void test_bug_fixes()
 	cstd::span<cstd::int32_t> from_array(fixed);
 	CSTD_ASSERT(from_array.size() == 3 && from_array[2] == 7, "[test] span from array");
 
-	// string_view is a read-only view: begin()/end() yield const_pointer.
 	char buffer[] = "hi";
 	cstd::string_view view(buffer);
 	cstd::string_view::const_pointer first = view.begin();
 	CSTD_ASSERT(view.end() - first == 2 && *first == 'h', "[test] string_view begin/end span the data");
 
-	// Bug F: generic hash<T> must compile and be deterministic.
 	cstd::hash<cstd::int32_t> hasher;
 	CSTD_ASSERT(hasher(42) == hasher(42), "[test] hash must be deterministic");
 }
 
 static void test_shared_ptr_conversion()
 {
-	// Bug C: shared_ptr cross-type (converting) copy must increment the refcount.
 	struct shape { cstd::int32_t sides_ = 0; };
 	struct square : shape { };
 
@@ -136,7 +124,7 @@ static void test_shared_ptr_conversion()
 	sq->sides_ = 4;
 
 	{
-		cstd::shared_ptr<shape> sh = sq;   // converting copy: must share ownership
+		cstd::shared_ptr<shape> sh = sq;
 		CSTD_ASSERT(sh->sides_ == 4, "[test] shared_ptr converting copy must share the object");
 	}
 
@@ -145,7 +133,6 @@ static void test_shared_ptr_conversion()
 
 static void test_foundational_utilities()
 {
-	// Records how it was constructed, to prove perfect forwarding moves rather than copies.
 	struct probe
 	{
 		cstd::int32_t copies_ = 0;
@@ -156,12 +143,10 @@ static void test_foundational_utilities()
 		probe(probe&& other) noexcept : copies_(other.copies_), moves_(other.moves_ + 1) { }
 	};
 
-	// forward: a pure rvalue must be moved into make_unique, never copied.
 	cstd::unique_ptr<probe> forwarded = cstd::make_unique<probe>(probe{});
 	CSTD_ASSERT(forwarded->copies_ == 0, "[test] forward moves an rvalue (no copy)");
 	CSTD_ASSERT(forwarded->moves_ == 1, "[test] forward move-constructs exactly once");
 
-	// swap
 	cstd::vector<cstd::int32_t> left;
 	left.push_back(1);
 	cstd::vector<cstd::int32_t> right;
@@ -170,23 +155,19 @@ static void test_foundational_utilities()
 	cstd::swap(left, right);
 	CSTD_ASSERT(left.size() == 2 && left[0] == 9 && right.size() == 1 && right[0] == 1, "[test] swap exchanges contents");
 
-	// exchange
 	cstd::int32_t slot = 3;
 	const cstd::int32_t previous = cstd::exchange(slot, 7);
 	CSTD_ASSERT(previous == 3 && slot == 7, "[test] exchange returns old and stores new");
 
-	// min / max / clamp
 	CSTD_ASSERT(cstd::min(2, 5) == 2 && cstd::max(2, 5) == 5, "[test] min/max");
 	CSTD_ASSERT(cstd::clamp(10, 0, 5) == 5 && cstd::clamp(-1, 0, 5) == 0 && cstd::clamp(3, 0, 5) == 3, "[test] clamp");
 
-	// numeric_limits
 	CSTD_ASSERT(cstd::numeric_limits<cstd::uint8_t>::max() == 255, "[test] uint8 max");
 	CSTD_ASSERT(cstd::numeric_limits<cstd::uint8_t>::min() == 0, "[test] uint8 min");
 	CSTD_ASSERT(cstd::numeric_limits<cstd::int32_t>::max() == 2147483647, "[test] int32 max");
 	CSTD_ASSERT(cstd::numeric_limits<cstd::int32_t>::is_signed, "[test] int32 is signed");
 	CSTD_ASSERT(!cstd::numeric_limits<cstd::uint32_t>::is_signed, "[test] uint32 is unsigned");
 
-	// compile-time trait checks
 	struct trait_base { };
 	struct trait_derived : trait_base { };
 
@@ -205,7 +186,6 @@ static void test_foundational_utilities()
 
 static void test_vector_emplace_erase()
 {
-	// emplace_back constructs in place (no copy/move) and returns a reference to back().
 	cstd::vector<lifetime_probe> e;
 	e.reserve(4);
 	lifetime_probe::copies = 0;
@@ -215,7 +195,6 @@ static void test_vector_emplace_erase()
 	CSTD_ASSERT(lifetime_probe::copies == 0 && lifetime_probe::moves == 0, "[test] emplace_back constructs in place");
 	CSTD_ASSERT(&ref == &e.back() && ref.value == 8, "[test] emplace_back returns back reference");
 
-	// erase must run destructors and shift survivors left.
 	{
 		CSTD_ASSERT(lifetime_probe::live == 1, "[test] one probe live before erase scope");
 
@@ -226,12 +205,12 @@ static void test_vector_emplace_erase()
 		v.emplace_back(4);
 		CSTD_ASSERT(v.size() == 4 && lifetime_probe::live == 5, "[test] emplace_back grows live count");
 
-		cstd::vector<lifetime_probe>::pointer next = v.erase(v.begin() + 1);   // removes value 2
+		cstd::vector<lifetime_probe>::pointer next = v.erase(v.begin() + 1);
 		CSTD_ASSERT(v.size() == 3 && lifetime_probe::live == 4, "[test] erase one destroys one");
 		CSTD_ASSERT(v[0].value == 1 && v[1].value == 3 && v[2].value == 4, "[test] erase shifts survivors");
 		CSTD_ASSERT(next == v.begin() + 1 && next->value == 3, "[test] erase returns iterator to next element");
 
-		v.erase(v.begin(), v.begin() + 2);   // removes 1 and 3
+		v.erase(v.begin(), v.begin() + 2);
 		CSTD_ASSERT(v.size() == 1 && v[0].value == 4 && lifetime_probe::live == 2, "[test] erase range destroys range");
 	}
 
@@ -240,7 +219,6 @@ static void test_vector_emplace_erase()
 
 static void test_vector_assign_insert()
 {
-	// assign (count+value / range), range insert, reserve/shrink_to_fit, at, comparisons.
 	cstd::vector<cstd::int32_t> v;
 	v.assign(3, 7);
 	CSTD_ASSERT(v.size() == 3 && v[0] == 7 && v[2] == 7, "[test] vector assign(count, value)");
@@ -250,7 +228,7 @@ static void test_vector_assign_insert()
 	CSTD_ASSERT(v.size() == 4 && v[0] == 1 && v[3] == 4, "[test] vector assign(range)");
 
 	cstd::int32_t more[] = { 8, 9 };
-	v.insert(v.begin() + 1, more, more + 2);   // { 1, 8, 9, 2, 3, 4 }
+	v.insert(v.begin() + 1, more, more + 2);
 	CSTD_ASSERT(v.size() == 6 && v[1] == 8 && v[2] == 9 && v[3] == 2 && v[5] == 4, "[test] vector range insert");
 	CSTD_ASSERT(v.at(0) == 1, "[test] vector at()");
 
@@ -260,9 +238,9 @@ static void test_vector_assign_insert()
 	CSTD_ASSERT(v.max_size() == v.size() && v.size() == 6 && v[5] == 4, "[test] shrink_to_fit keeps contents");
 
 	cstd::vector<cstd::int32_t> x;
-	x.assign(source, source + 4);   // { 1, 2, 3, 4 }
+	x.assign(source, source + 4);
 	cstd::vector<cstd::int32_t> y;
-	y.assign(source, source + 3);   // { 1, 2, 3 }
+	y.assign(source, source + 3);
 	CSTD_ASSERT(x != y && y < x, "[test] vector comparison: prefix is less");
 	y.push_back(4);
 	CSTD_ASSERT(x == y, "[test] vector equality");
@@ -272,7 +250,6 @@ static void test_vector_assign_insert()
 
 static void test_leaf_types()
 {
-	// pair: make_pair decays, comparisons, swap, converting copy.
 	static_assert(cstd::is_same_v<decltype(cstd::make_pair(1, 'a').first), cstd::int32_t>, "make_pair decays first");
 	static_assert(cstd::is_same_v<decltype(cstd::make_pair(1, 'a').second), char>, "make_pair decays second");
 
@@ -283,10 +260,9 @@ static void test_leaf_types()
 	p1.swap(p2);
 	CSTD_ASSERT(p1.second == 3 && p2.second == 2, "[test] pair swap");
 
-	cstd::pair<cstd::int64_t, cstd::int64_t> widened = p1;   // converting copy
+	cstd::pair<cstd::int64_t, cstd::int64_t> widened = p1;
 	CSTD_ASSERT(widened.first == 1 && widened.second == 3, "[test] pair converting copy");
 
-	// array: accessors, equality, fill, ordering, swap, constexpr.
 	cstd::array<cstd::int32_t, 3> a{ 1, 2, 3 };
 	CSTD_ASSERT(a.at(0) == 1 && a.front() == 1 && a.back() == 3 && !a.empty(), "[test] array accessors");
 
@@ -302,7 +278,6 @@ static void test_leaf_types()
 	static_assert([]() constexpr { cstd::array<cstd::int32_t, 2> c{ 0, 0 }; c.fill(4); return c[0] == 4 && c[1] == 4; }(),
 		"array constexpr fill");
 
-	// span: front/back/empty/first/last/subspan.
 	cstd::array<cstd::int32_t, 5> data{ 10, 20, 30, 40, 50 };
 	cstd::span<cstd::int32_t> whole(data);
 	CSTD_ASSERT(!whole.empty() && whole.front() == 10 && whole.back() == 50, "[test] span front/back/empty");
@@ -316,7 +291,6 @@ static void test_leaf_types()
 	CSTD_ASSERT(mid.size() == 2 && mid[0] == 20 && mid[1] == 30, "[test] span subspan(offset,count)");
 	CSTD_ASSERT(rest.size() == 2 && rest[0] == 40 && rest[1] == 50, "[test] span subspan(offset)");
 
-	// string_view: front/back, starts_with/ends_with, substr, rfind, find_first_of, comparisons, remove_*.
 	cstd::string_view sv("hello world");
 	CSTD_ASSERT(sv.front() == 'h' && sv.back() == 'd', "[test] string_view front/back");
 	CSTD_ASSERT(sv.starts_with(cstd::string_view("hello")) && sv.ends_with(cstd::string_view("world")),
@@ -334,9 +308,9 @@ static void test_leaf_types()
 	cstd::string_view ab("ab");
 	CSTD_ASSERT(abc < abd && abd > abc && abc != abd && ab < abc, "[test] string_view ordering");
 
-	sv.remove_prefix(6);   // "world"
+	sv.remove_prefix(6);
 	CSTD_ASSERT(sv == cstd::string_view("world"), "[test] string_view remove_prefix");
-	sv.remove_suffix(3);   // "wo"
+	sv.remove_suffix(3);
 	CSTD_ASSERT(sv == cstd::string_view("wo"), "[test] string_view remove_suffix");
 
 	static_assert(cstd::string_view("abcdef").substr(2, 3) == cstd::string_view("cde"), "string_view constexpr substr");
@@ -346,7 +320,6 @@ static void test_leaf_types()
 
 static void test_string()
 {
-	// append / += (char, C-string, string_view) with value semantics and intact NUL.
 	cstd::string s;
 	s += 'a';
 	s += "bc";
@@ -363,18 +336,15 @@ static void test_string()
 	CSTD_ASSERT(("pre" + a) == cstd::string_view("prefoo"), "[test] operator+ (cstr + string)");
 	CSTD_ASSERT((a + '!') == cstd::string_view("foo!"), "[test] operator+ (string + char)");
 
-	// substr (owning), c_str.
 	cstd::string hello("hello");
 	cstd::string sub = hello.substr(1, 3);
 	CSTD_ASSERT(sub == cstd::string_view("ell") && sub.c_str()[3] == '\0', "[test] string substr is owning + NUL");
 	CSTD_ASSERT(hello.substr(2) == cstd::string_view("llo"), "[test] string substr to end");
 
-	// clear.
 	cstd::string cleared("xyz");
 	cleared.clear();
 	CSTD_ASSERT(cleared.empty() && cleared.size() == 0 && cleared.data()[0] == '\0', "[test] string clear");
 
-	// resize: shrink, then grow with fill.
 	cstd::string shrunk("hello");
 	shrunk.resize(2);
 	CSTD_ASSERT(shrunk == cstd::string_view("he") && shrunk.data()[2] == '\0', "[test] string resize shrink");
@@ -383,7 +353,6 @@ static void test_string()
 	grown.resize(5, 'x');
 	CSTD_ASSERT(grown == cstd::string_view("abxxx") && grown.data()[5] == '\0', "[test] string resize grow with fill");
 
-	// starts_with / ends_with / ordering (string converts to string_view).
 	CSTD_ASSERT(hello.starts_with(cstd::string_view("he")) && hello.ends_with(cstd::string_view("lo")),
 		"[test] string starts/ends_with");
 	CSTD_ASSERT(hello.starts_with('h') && hello.ends_with('o'), "[test] string starts/ends_with char");
@@ -397,12 +366,10 @@ static void test_optional()
 {
 	CSTD_ASSERT(lifetime_probe::live == 0, "[test] probe baseline before optional");
 
-	// default / nullopt construct no T.
 	cstd::optional<lifetime_probe> empty1;
 	cstd::optional<lifetime_probe> empty2(cstd::nullopt);
 	CSTD_ASSERT(!empty1.has_value() && !empty2 && lifetime_probe::live == 0, "[test] disengaged optional holds no T");
 
-	// assigning a value engages and holds exactly one; reset destroys exactly one.
 	{
 		cstd::optional<lifetime_probe> o;
 		o = lifetime_probe(42);
@@ -412,7 +379,6 @@ static void test_optional()
 		CSTD_ASSERT(!o.has_value() && lifetime_probe::live == 0, "[test] optional reset destroys the payload");
 	}
 
-	// copy of engaged copy-constructs payload once; copy of disengaged copies nothing.
 	{
 		cstd::optional<lifetime_probe> engaged(lifetime_probe(7));
 		lifetime_probe::copies = 0;
@@ -427,7 +393,6 @@ static void test_optional()
 	}
 	CSTD_ASSERT(lifetime_probe::live == 0, "[test] optional destructors balanced after copies");
 
-	// move disengages the source.
 	{
 		cstd::optional<lifetime_probe> src(lifetime_probe(9));
 		cstd::optional<lifetime_probe> dst = cstd::move(src);
@@ -435,7 +400,6 @@ static void test_optional()
 	}
 	CSTD_ASSERT(lifetime_probe::live == 0, "[test] optional destructors balanced after move");
 
-	// emplace destroys old payload, constructs new in place, returns a reference.
 	{
 		cstd::optional<lifetime_probe> o(lifetime_probe(1));
 		lifetime_probe& r = o.emplace(2);
@@ -444,12 +408,10 @@ static void test_optional()
 	}
 	CSTD_ASSERT(lifetime_probe::live == 0, "[test] optional destructors balanced after emplace");
 
-	// value_or: payload when engaged, default when disengaged.
 	cstd::optional<cstd::int32_t> some(5);
 	cstd::optional<cstd::int32_t> none;
 	CSTD_ASSERT(some.value_or(0) == 5 && none.value_or(99) == 99, "[test] optional value_or");
 
-	// constexpr engaged-from-value read path.
 	constexpr cstd::optional<cstd::int32_t> compile_time(5);
 	static_assert(compile_time.has_value() && *compile_time == 5, "optional constexpr value");
 }
@@ -528,7 +490,6 @@ static void test_algorithm_nonmodifying()
 	cstd::int32_t* const first = values;
 	cstd::int32_t* const last = values + 8;
 
-	// find: present returns the slot; absent returns `last` (std semantics, not nullptr).
 	CSTD_ASSERT(cstd::find(first, last, 4) == values + 2, "[test] find present");
 	CSTD_ASSERT(cstd::find(first, last, 7) == last, "[test] find absent returns last");
 
@@ -542,7 +503,6 @@ static void test_algorithm_nonmodifying()
 	CSTD_ASSERT(cstd::any_of(first, last, is_even) && !cstd::all_of(first, last, is_even)
 		&& !cstd::none_of(first, last, is_even), "[test] any/all/none_of");
 
-	// empty range: all_of/none_of are vacuously true, any_of false.
 	CSTD_ASSERT(cstd::all_of(first, first, is_even) && cstd::none_of(first, first, is_even)
 		&& !cstd::any_of(first, first, is_even), "[test] quantifiers on empty range");
 
@@ -559,7 +519,6 @@ static void test_algorithm_nonmodifying()
 	cstd::int32_t parity[] = { 1, 3, 2, 3, 7, 1, 4, 8 };
 	CSTD_ASSERT(cstd::equal(first, last, parity, same_parity), "[test] equal with predicate");
 
-	// first-of-equal tie-breaking matches the standard library.
 	cstd::int32_t ties[] = { 3, 1, 1, 4, 4, 2 };
 	CSTD_ASSERT(cstd::min_element(ties, ties + 6) == ties + 1, "[test] min_element first of equal");
 	CSTD_ASSERT(cstd::max_element(ties, ties + 6) == ties + 3, "[test] max_element first of equal");
@@ -616,7 +575,6 @@ static void test_algorithm_modifying()
 	cstd::reverse(odd, odd + 3);
 	CSTD_ASSERT(odd[0] == 3 && odd[1] == 2 && odd[2] == 1, "[test] reverse odd length");
 
-	// remove_if + erase-remove idiom (stable survivors).
 	cstd::vector<cstd::int32_t> v;
 	for (cstd::int32_t i = 1; i <= 6; ++i)
 	{
@@ -633,13 +591,11 @@ static void test_algorithm_modifying()
 
 	CSTD_ASSERT(v.size() == 3 && v[0] == 1 && v[1] == 3 && v[2] == 5, "[test] erase-remove keeps stable survivors");
 
-	// remove all / remove none.
 	cstd::int32_t all_twos[] = { 2, 2, 2 };
 	CSTD_ASSERT(cstd::remove(all_twos, all_twos + 3, 2) == all_twos, "[test] remove all collapses to begin");
 	cstd::int32_t no_match[] = { 1, 2, 3 };
 	CSTD_ASSERT(cstd::remove(no_match, no_match + 3, 9) == no_match + 3, "[test] remove none keeps end");
 
-	// ranges modifying wrappers.
 	cstd::array<cstd::int32_t, 4> arr{ 1, 2, 3, 4 };
 	cstd::span<cstd::int32_t> arr_span(arr);
 	cstd::ranges::reverse(arr_span);
@@ -650,7 +606,6 @@ static void test_algorithm_modifying()
 
 static void test_algorithm_sorted()
 {
-	// lower_bound / upper_bound / binary_search on sorted data with duplicates.
 	cstd::int32_t sorted[] = { 1, 2, 2, 2, 3 };
 	CSTD_ASSERT(cstd::lower_bound(sorted, sorted + 5, 2) == sorted + 1, "[test] lower_bound first match");
 	CSTD_ASSERT(cstd::upper_bound(sorted, sorted + 5, 2) == sorted + 4, "[test] upper_bound past last match");
@@ -661,13 +616,11 @@ static void test_algorithm_sorted()
 	CSTD_ASSERT(cstd::binary_search(sorted, sorted + 5, 3) && !cstd::binary_search(sorted, sorted + 5, 4),
 		"[test] binary_search present/absent");
 
-	// sort: small range exercises the insertion-sort path (count <= 16).
 	cstd::int32_t small[] = { 5, 2, 8, 1, 9, 3, 7, 4 };
 	cstd::sort(small, small + 8);
 	CSTD_ASSERT(cstd::is_sorted(small, small + 8) && small[0] == 1 && small[7] == 9, "[test] sort small (insertion)");
 	CSTD_ASSERT(cstd::count(small, small + 8, 5) == 1, "[test] sort preserves elements");
 
-	// sort: large range exercises heapsort; adversarial inputs that would break naive quicksort.
 	cstd::int32_t big[64];
 	for (cstd::int32_t i = 0; i < 64; ++i)
 	{
@@ -690,19 +643,16 @@ static void test_algorithm_sorted()
 	cstd::sort(big, big + 64);
 	CSTD_ASSERT(cstd::is_sorted(big, big + 64) && big[0] == 0 && big[63] == 63, "[test] sort already-sorted");
 
-	// custom comparator: descending order.
 	cstd::int32_t descending[] = { 3, 1, 4, 1, 5, 9, 2, 6 };
 	cstd::sort(descending, descending + 8, cstd::greater{});
 	CSTD_ASSERT(descending[0] == 9 && descending[7] == 1 && cstd::is_sorted(descending, descending + 8, cstd::greater{}),
 		"[test] sort descending with comparator");
 
-	// is_sorted edges.
 	cstd::int32_t one[] = { 42 };
 	CSTD_ASSERT(cstd::is_sorted(one, one + 1) && cstd::is_sorted(one, one), "[test] is_sorted single/empty");
 	cstd::int32_t disordered[] = { 1, 3, 2 };
 	CSTD_ASSERT(!cstd::is_sorted(disordered, disordered + 3), "[test] is_sorted detects disorder");
 
-	// ranges sort + binary_search.
 	cstd::array<cstd::int32_t, 5> ra{ 4, 2, 5, 1, 3 };
 	cstd::span<cstd::int32_t> ra_span(ra);
 	cstd::ranges::sort(ra_span);
@@ -712,7 +662,6 @@ static void test_algorithm_sorted()
 
 static void test_flat_map()
 {
-	// keys stay sorted regardless of insertion order.
 	cstd::flat_map<cstd::int32_t, cstd::int32_t> m;
 	m[3] = 30;
 	m[1] = 10;
@@ -729,7 +678,6 @@ static void test_flat_map()
 	CSTD_ASSERT(m.size() == 2 && !m.contains(2) && m.begin()[0].first == 1 && m.begin()[1].first == 3,
 		"[test] flat_map erase keeps sorted order");
 
-	// initializer-list with unsorted literals yields sorted iteration.
 	using kv = cstd::pair<cstd::int32_t, cstd::int32_t>;
 	kv entries[] = { { 5, 50 }, { 1, 10 }, { 3, 30 } };
 	cstd::initializer_list<kv> entry_list(entries);
@@ -753,7 +701,6 @@ static void test_mutex()
 	CSTD_ASSERT(m.try_lock(), "[mutex] unlock() releases the mutex");
 	m.unlock();
 
-	// lock_guard locks on construction and releases at scope exit.
 	cstd::mutex guarded;
 	{
 		cstd::lock_guard<cstd::mutex> lock(guarded);
@@ -762,7 +709,6 @@ static void test_mutex()
 	CSTD_ASSERT(guarded.try_lock(), "[mutex] lock_guard releases at scope exit");
 	guarded.unlock();
 
-	// adopt_lock: caller already holds the mutex; guard adopts and unlocks on exit.
 	guarded.lock();
 	{
 		cstd::lock_guard<cstd::mutex> adopted(guarded, cstd::adopt_lock);
@@ -779,13 +725,11 @@ static void test_unique_lock()
 {
 	cstd::mutex m;
 
-	// Default-constructed: no associated mutex, not owning.
 	cstd::unique_lock<cstd::mutex> empty;
 	CSTD_ASSERT(!empty.owns_lock(), "[unique_lock] default does not own");
 	CSTD_ASSERT(empty.mutex() == nullptr, "[unique_lock] default has no mutex");
 	CSTD_ASSERT(!static_cast<bool>(empty), "[unique_lock] default is falsy");
 
-	// Locking constructor takes ownership; destructor releases it.
 	{
 		cstd::unique_lock<cstd::mutex> lock(m);
 		CSTD_ASSERT(lock.owns_lock(), "[unique_lock] ctor locks");
@@ -796,7 +740,6 @@ static void test_unique_lock()
 	CSTD_ASSERT(m.try_lock(), "[unique_lock] dtor unlocks");
 	m.unlock();
 
-	// defer_lock: associate without locking; lock()/unlock() drive ownership.
 	{
 		cstd::unique_lock<cstd::mutex> lock(m, cstd::defer_lock);
 		CSTD_ASSERT(!lock.owns_lock(), "[unique_lock] defer does not lock");
@@ -806,7 +749,6 @@ static void test_unique_lock()
 		CSTD_ASSERT(!lock.owns_lock(), "[unique_lock] unlock() releases");
 	}
 
-	// try_to_lock: acquires a free mutex, fails on a held one.
 	{
 		cstd::unique_lock<cstd::mutex> lock(m, cstd::try_to_lock);
 		CSTD_ASSERT(lock.owns_lock(), "[unique_lock] try_to_lock acquires free mutex");
@@ -818,7 +760,6 @@ static void test_unique_lock()
 	}
 	m.unlock();
 
-	// adopt_lock: caller already holds it; guard adopts and unlocks on exit.
 	m.lock();
 	{
 		cstd::unique_lock<cstd::mutex> lock(m, cstd::adopt_lock);
@@ -827,7 +768,6 @@ static void test_unique_lock()
 	CSTD_ASSERT(m.try_lock(), "[unique_lock] adopt releases at scope exit");
 	m.unlock();
 
-	// Move construction transfers ownership; the source goes empty.
 	{
 		cstd::unique_lock<cstd::mutex> source(m);
 		cstd::unique_lock<cstd::mutex> sink(cstd::move(source));
@@ -837,7 +777,6 @@ static void test_unique_lock()
 	CSTD_ASSERT(m.try_lock(), "[unique_lock] moved-to lock unlocks at scope exit");
 	m.unlock();
 
-	// Move assignment unlocks the prior lock, then adopts the source.
 	{
 		cstd::unique_lock<cstd::mutex> a(m);
 		cstd::unique_lock<cstd::mutex> b;
@@ -847,7 +786,6 @@ static void test_unique_lock()
 	CSTD_ASSERT(m.try_lock(), "[unique_lock] move-assign target unlocks at scope exit");
 	m.unlock();
 
-	// release() detaches the association WITHOUT unlocking: the mutex stays held.
 	{
 		cstd::unique_lock<cstd::mutex> lock(m);
 		cstd::mutex* raw = lock.release();
@@ -859,7 +797,6 @@ static void test_unique_lock()
 	CSTD_ASSERT(m.try_lock(), "[unique_lock] mutex usable after manual unlock");
 	m.unlock();
 
-	// swap exchanges ownership and association both ways.
 	{
 		cstd::unique_lock<cstd::mutex> held(m);
 		cstd::unique_lock<cstd::mutex> other;
@@ -872,9 +809,354 @@ static void test_unique_lock()
 	m.unlock();
 }
 
+static void test_function()
+{
+	cstd::function<cstd::int32_t()> empty;
+	CSTD_ASSERT(!empty, "[function] default is empty");
+
+	cstd::function<cstd::int32_t()> null_fn(nullptr);
+	CSTD_ASSERT(!null_fn, "[function] nullptr is empty");
+
+	cstd::function<cstd::int32_t(cstd::int32_t, cstd::int32_t)> add =
+		[](cstd::int32_t a, cstd::int32_t b) { return a + b; };
+	CSTD_ASSERT(static_cast<bool>(add), "[function] lambda is non-empty");
+	CSTD_ASSERT(add(3, 4) == 7, "[function] stateless lambda");
+
+	cstd::int32_t captured = 42;
+	cstd::function<cstd::int32_t()> by_value = [captured]() { return captured; };
+	CSTD_ASSERT(by_value() == 42, "[function] capture by value");
+
+	cstd::int32_t ref_target = 5;
+	cstd::function<void()> by_ref = [&ref_target]() { ref_target = 99; };
+	by_ref();
+	CSTD_ASSERT(ref_target == 99, "[function] capture by reference");
+
+	cstd::function<cstd::int32_t()> original = by_value;
+	cstd::function<cstd::int32_t()> copied = original;
+	CSTD_ASSERT(original() == 42 && copied() == 42, "[function] copy preserves both");
+
+	cstd::function<cstd::int32_t()> moved = cstd::move(copied);
+	CSTD_ASSERT(moved() == 42, "[function] move transfers target");
+	CSTD_ASSERT(!copied, "[function] move empties source");
+
+	moved = nullptr;
+	CSTD_ASSERT(!moved, "[function] nullptr assignment empties");
+
+	cstd::function<cstd::int32_t()> sa = []() { return 1; };
+	cstd::function<cstd::int32_t()> sb = []() { return 2; };
+	sa.swap(sb);
+	CSTD_ASSERT(sa() == 2 && sb() == 1, "[function] swap");
+
+	cstd::int32_t side_effect = 0;
+	cstd::function<void()> void_fn = [&side_effect]() { side_effect = 7; };
+	void_fn();
+	CSTD_ASSERT(side_effect == 7, "[function] void return");
+}
+
+static void test_function_lifetime()
+{
+	CSTD_ASSERT(lifetime_probe::live == 0, "[function] probe baseline");
+
+	{
+		lifetime_probe probe(10);
+		cstd::function<cstd::int32_t()> fn = [probe]() { return probe.value; };
+		CSTD_ASSERT(fn() == 10, "[function] captured probe");
+	}
+	CSTD_ASSERT(lifetime_probe::live == 0, "[function] probes destroyed with function");
+
+	{
+		cstd::function<cstd::int32_t()> fn = [p = lifetime_probe(1)]() { return p.value; };
+		CSTD_ASSERT(lifetime_probe::live == 1 && fn() == 1, "[function] one probe in closure");
+
+		fn = [p = lifetime_probe(2)]() { return p.value; };
+		CSTD_ASSERT(lifetime_probe::live == 1 && fn() == 2, "[function] reassign destroys old probe");
+	}
+	CSTD_ASSERT(lifetime_probe::live == 0, "[function] all probes cleaned up");
+
+	{
+		cstd::function<cstd::int32_t()> fn = [p = lifetime_probe(3)]() { return p.value; };
+		lifetime_probe::copies = 0;
+		cstd::function<cstd::int32_t()> copy = fn;
+		CSTD_ASSERT(copy() == 3 && lifetime_probe::copies >= 1, "[function] copy duplicates capture");
+		CSTD_ASSERT(lifetime_probe::live == 2, "[function] copy has independent probe");
+	}
+	CSTD_ASSERT(lifetime_probe::live == 0, "[function] copies cleaned up");
+
+	{
+		cstd::int64_t a = 1, b = 2, c = 3, d = 4, e = 5;
+		cstd::function<cstd::int64_t()> big = [a, b, c, d, e]() { return a + b + c + d + e; };
+		CSTD_ASSERT(big() == 15, "[function] large capture (heap path)");
+
+		cstd::function<cstd::int64_t()> big_copy = big;
+		CSTD_ASSERT(big_copy() == 15, "[function] copy of heap-allocated");
+	}
+}
+
+static void test_single_linked_list()
+{
+	cstd::single_linked_list<cstd::int32_t> l;
+	CSTD_ASSERT(l.empty() && l.size() == 0, "[slist] default is empty");
+
+	l.push_back(1);
+	l.push_back(2);
+	l.push_back(3);
+	CSTD_ASSERT(l.size() == 3, "[slist] push_back grows size");
+	CSTD_ASSERT(l.front() == 1 && l.back() == 3, "[slist] push_back order");
+
+	l.push_front(0);
+	CSTD_ASSERT(l.size() == 4 && l.front() == 0, "[slist] push_front");
+
+	l.pop_front();
+	CSTD_ASSERT(l.size() == 3 && l.front() == 1, "[slist] pop_front");
+
+	cstd::int32_t sum = 0;
+	for (auto x : l)
+	{
+		sum += x;
+	}
+	CSTD_ASSERT(sum == 6, "[slist] range-for");
+
+	cstd::single_linked_list<cstd::int32_t> copy = l;
+	CSTD_ASSERT(copy.size() == 3 && copy.front() == 1 && copy.back() == 3, "[slist] copy ctor");
+	copy.push_back(9);
+	CSTD_ASSERT(l.size() == 3, "[slist] copy is independent");
+
+	cstd::single_linked_list<cstd::int32_t> moved = cstd::move(copy);
+	CSTD_ASSERT(moved.size() == 4 && moved.back() == 9, "[slist] move ctor transfers");
+	CSTD_ASSERT(copy.empty(), "[slist] move ctor empties source");
+
+	moved.clear();
+	CSTD_ASSERT(moved.empty(), "[slist] clear");
+
+	cstd::single_linked_list<cstd::int32_t> a;
+	a.push_back(1); a.push_back(2);
+	cstd::single_linked_list<cstd::int32_t> b;
+	b.push_back(1); b.push_back(2);
+	CSTD_ASSERT(a == b, "[slist] equality");
+	b.push_back(3);
+	CSTD_ASSERT(a != b && a < b, "[slist] less by length");
+}
+
+static void test_single_linked_list_iterator()
+{
+	cstd::single_linked_list<cstd::int32_t> l;
+	l.push_back(10);
+	l.push_back(20);
+	l.push_back(30);
+
+	auto inserted = l.insert_after(l.before_begin(), 5);
+	CSTD_ASSERT(*inserted == 5 && l.size() == 4 && l.front() == 5, "[slist] insert_after before_begin");
+
+	auto it = l.begin();
+	l.insert_after(it, 15);
+	CSTD_ASSERT(l.size() == 5, "[slist] insert_after middle");
+	it = l.begin();
+	++it;
+	CSTD_ASSERT(*it == 15, "[slist] insert_after order");
+
+	l.erase_after(l.before_begin());
+	CSTD_ASSERT(l.size() == 4 && l.front() == 15, "[slist] erase_after before_begin");
+
+	l.erase_after(l.begin());
+	CSTD_ASSERT(l.size() == 3, "[slist] erase_after middle");
+	it = l.begin();
+	++it;
+	CSTD_ASSERT(*it == 20, "[slist] erase_after removes correct node");
+
+	l.reverse();
+	CSTD_ASSERT(l.front() == 30 && l.back() == 15, "[slist] reverse");
+
+	l.push_back(20);
+	cstd::size_t removed = l.remove(20);
+	CSTD_ASSERT(removed == 2 && l.size() == 2, "[slist] remove count");
+	CSTD_ASSERT(l.front() == 30 && l.back() == 15, "[slist] remove keeps others");
+
+	l.push_back(5);
+	l.push_back(40);
+	l.remove_if([](cstd::int32_t x) { return x >= 20; });
+	CSTD_ASSERT(l.size() == 2 && l.front() == 15 && l.back() == 5, "[slist] remove_if");
+
+	cstd::single_linked_list<cstd::int32_t> x;
+	x.push_back(1);
+	cstd::single_linked_list<cstd::int32_t> y;
+	y.push_back(8);
+	y.push_back(9);
+	x.swap(y);
+	CSTD_ASSERT(x.size() == 2 && x.front() == 8 && y.size() == 1 && y.front() == 1, "[slist] swap");
+
+	cstd::single_linked_list<cstd::int32_t> empty;
+	cstd::single_linked_list<cstd::int32_t> full;
+	full.push_back(7);
+	empty.swap(full);
+	CSTD_ASSERT(empty.size() == 1 && empty.front() == 7 && full.empty(), "[slist] swap with empty");
+
+	cstd::single_linked_list<cstd::int32_t> e;
+	cstd::int32_t& ref = e.emplace_back(42);
+	CSTD_ASSERT(ref == 42 && e.back() == 42, "[slist] emplace_back");
+	e.emplace_front(7);
+	CSTD_ASSERT(e.front() == 7, "[slist] emplace_front");
+}
+
+static void test_single_linked_list_lifetime()
+{
+	CSTD_ASSERT(lifetime_probe::live == 0, "[slist] probe baseline");
+
+	{
+		cstd::single_linked_list<lifetime_probe> l;
+		l.emplace_back(1);
+		l.emplace_back(2);
+		l.emplace_back(3);
+		CSTD_ASSERT(lifetime_probe::live == 3, "[slist] emplace creates probes");
+
+		l.pop_front();
+		CSTD_ASSERT(lifetime_probe::live == 2, "[slist] pop_front destroys one");
+	}
+	CSTD_ASSERT(lifetime_probe::live == 0, "[slist] destructor cleans up all");
+
+	{
+		cstd::single_linked_list<lifetime_probe> l;
+		l.emplace_back(1);
+		l.emplace_back(2);
+		l.emplace_back(3);
+		l.clear();
+		CSTD_ASSERT(lifetime_probe::live == 0, "[slist] clear destroys all");
+	}
+}
+
+static void test_double_linked_list()
+{
+	cstd::double_linked_list<cstd::int32_t> l;
+	CSTD_ASSERT(l.empty() && l.size() == 0, "[dlist] default is empty");
+
+	l.push_back(1);
+	l.push_back(2);
+	l.push_back(3);
+	CSTD_ASSERT(l.size() == 3, "[dlist] push_back grows size");
+	CSTD_ASSERT(l.front() == 1 && l.back() == 3, "[dlist] push_back order");
+
+	l.push_front(0);
+	CSTD_ASSERT(l.size() == 4 && l.front() == 0, "[dlist] push_front");
+
+	l.pop_back();
+	CSTD_ASSERT(l.size() == 3 && l.back() == 2, "[dlist] pop_back");
+
+	l.pop_front();
+	CSTD_ASSERT(l.size() == 2 && l.front() == 1, "[dlist] pop_front");
+
+	cstd::int32_t sum = 0;
+	for (auto x : l)
+	{
+		sum += x;
+	}
+	CSTD_ASSERT(sum == 3, "[dlist] range-for");
+
+	cstd::double_linked_list<cstd::int32_t> copy = l;
+	CSTD_ASSERT(copy.size() == 2 && copy.front() == 1 && copy.back() == 2, "[dlist] copy ctor");
+	copy.push_back(9);
+	CSTD_ASSERT(l.size() == 2, "[dlist] copy is independent");
+
+	cstd::double_linked_list<cstd::int32_t> moved = cstd::move(copy);
+	CSTD_ASSERT(moved.size() == 3 && moved.back() == 9, "[dlist] move ctor transfers");
+	CSTD_ASSERT(copy.empty(), "[dlist] move ctor empties source");
+
+	moved.clear();
+	CSTD_ASSERT(moved.empty(), "[dlist] clear");
+
+	cstd::double_linked_list<cstd::int32_t> a;
+	a.push_back(1); a.push_back(2);
+	cstd::double_linked_list<cstd::int32_t> b;
+	b.push_back(1); b.push_back(2);
+	CSTD_ASSERT(a == b, "[dlist] equality");
+	b.push_back(3);
+	CSTD_ASSERT(a != b && a < b, "[dlist] less by length");
+}
+
+static void test_double_linked_list_iterator()
+{
+	cstd::double_linked_list<cstd::int32_t> l;
+	l.push_back(10);
+	l.push_back(20);
+	l.push_back(30);
+
+	auto it = l.begin();
+	++it;
+	auto inserted = l.insert(it, 15);
+	CSTD_ASSERT(*inserted == 15 && l.size() == 4, "[dlist] insert returns new element");
+
+	it = l.begin();
+	CSTD_ASSERT(*it == 10, "[dlist] insert order[0]");
+	++it;
+	CSTD_ASSERT(*it == 15, "[dlist] insert order[1]");
+	++it;
+	CSTD_ASSERT(*it == 20, "[dlist] insert order[2]");
+	++it;
+	CSTD_ASSERT(*it == 30, "[dlist] insert order[3]");
+
+	it = l.begin();
+	++it;
+	auto after = l.erase(it);
+	CSTD_ASSERT(*after == 20 && l.size() == 3, "[dlist] erase returns next");
+	CSTD_ASSERT(l.front() == 10, "[dlist] erase keeps other elements");
+
+	l.reverse();
+	CSTD_ASSERT(l.front() == 30 && l.back() == 10, "[dlist] reverse");
+
+	l.push_back(20);
+	cstd::size_t removed = l.remove(20);
+	CSTD_ASSERT(removed == 2 && l.size() == 2, "[dlist] remove count");
+	CSTD_ASSERT(l.front() == 30 && l.back() == 10, "[dlist] remove keeps others");
+
+	l.push_back(5);
+	l.push_back(40);
+	l.remove_if([](cstd::int32_t x) { return x >= 20; });
+	CSTD_ASSERT(l.size() == 2 && l.front() == 10 && l.back() == 5, "[dlist] remove_if");
+
+	cstd::double_linked_list<cstd::int32_t> x;
+	x.push_back(1);
+	cstd::double_linked_list<cstd::int32_t> y;
+	y.push_back(8);
+	y.push_back(9);
+	x.swap(y);
+	CSTD_ASSERT(x.size() == 2 && x.front() == 8 && y.size() == 1 && y.front() == 1, "[dlist] swap");
+
+	cstd::double_linked_list<cstd::int32_t> e;
+	cstd::int32_t& ref = e.emplace_back(42);
+	CSTD_ASSERT(ref == 42 && e.back() == 42, "[dlist] emplace_back");
+	e.emplace_front(7);
+	CSTD_ASSERT(e.front() == 7, "[dlist] emplace_front");
+}
+
+static void test_double_linked_list_lifetime()
+{
+	CSTD_ASSERT(lifetime_probe::live == 0, "[dlist] probe baseline");
+
+	{
+		cstd::double_linked_list<lifetime_probe> l;
+		l.emplace_back(1);
+		l.emplace_back(2);
+		l.emplace_back(3);
+		CSTD_ASSERT(lifetime_probe::live == 3, "[dlist] emplace creates probes");
+
+		l.pop_back();
+		CSTD_ASSERT(lifetime_probe::live == 2, "[dlist] pop_back destroys one");
+
+		l.pop_front();
+		CSTD_ASSERT(lifetime_probe::live == 1, "[dlist] pop_front destroys one");
+	}
+	CSTD_ASSERT(lifetime_probe::live == 0, "[dlist] destructor cleans up all");
+
+	{
+		cstd::double_linked_list<lifetime_probe> l;
+		l.emplace_back(1);
+		l.emplace_back(2);
+		l.emplace_back(3);
+		l.clear();
+		CSTD_ASSERT(lifetime_probe::live == 0, "[dlist] clear destroys all");
+	}
+}
+
 cstd::int32_t main()
 {
-	// atomic<size_t> exercises the 8-byte integral path.
 	cstd::atomic<cstd::size_t> counter(0);
 
 	if (++counter != 1)
@@ -904,7 +1186,6 @@ cstd::int32_t main()
 
 	CSTD_ASSERT(static_cast<cstd::size_t>(counter) == 3, "[atomic] conversion mismatch");
 
-	// atomic<uint32_t> exercises the 4-byte integral path.
 	cstd::atomic<cstd::uint32_t> small(10);
 
 	if (--small != 9)
@@ -922,7 +1203,6 @@ cstd::int32_t main()
 		return 8;
 	}
 
-	// atomic<uint16_t> exercises the 2-byte integral path.
 	cstd::atomic<cstd::uint16_t> tiny(0);
 
 	if (tiny.fetch_add(300) != 0)
@@ -935,8 +1215,6 @@ cstd::int32_t main()
 		return 10;
 	}
 
-	// atomic<point> proves any trivially-copyable type works through the
-	// bit-pattern path (no arithmetic ops), not just scalars.
 	cstd::atomic<point> location(point{ 1, 2 });
 
 	const point start = location.load();
@@ -979,7 +1257,6 @@ cstd::int32_t main()
 		return 16;
 	}
 
-	// shared_ptr now carries an atomic reference count.
 	cstd::shared_ptr<cstd::int32_t> owner = cstd::make_shared<cstd::int32_t>(42);
 
 	if (!owner)
@@ -1002,13 +1279,11 @@ cstd::int32_t main()
 		}
 	}
 
-	// The copies released without freeing the object while owner is still alive.
 	if (*owner != 42)
 	{
 		return 20;
 	}
 
-	// Each scenario traps via CSTD_ASSERT on failure; returning 0 means all passed.
 	test_bug_fixes();
 	test_shared_ptr_conversion();
 	test_foundational_utilities();
@@ -1025,6 +1300,14 @@ cstd::int32_t main()
 	test_flat_map();
 	test_mutex();
 	test_unique_lock();
+	test_function();
+	test_function_lifetime();
+	test_single_linked_list();
+	test_single_linked_list_iterator();
+	test_single_linked_list_lifetime();
+	test_double_linked_list();
+	test_double_linked_list_iterator();
+	test_double_linked_list_lifetime();
 
 	*owner = 7;
 

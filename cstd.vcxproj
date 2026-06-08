@@ -159,7 +159,9 @@
     <ClInclude Include="src\array.hpp" />
     <ClInclude Include="src\exception.hpp" />
     <ClInclude Include="src\expected.hpp" />
+    <ClInclude Include="src\bitset.hpp" />
     <ClInclude Include="src\flat_map.hpp" />
+    <ClInclude Include="src\list.hpp" />
     <ClInclude Include="src\hash.hpp" />
     <ClInclude Include="src\initializer_list.hpp" />
     <ClInclude Include="src\crt.hpp" />
@@ -174,6 +176,7 @@
     <ClInclude Include="src\types.hpp" />
     <ClInclude Include="src\type_traits.hpp" />
     <ClInclude Include="src\utility.hpp" />
+    <ClInclude Include="src\limits.hpp" />
     <ClInclude Include="src\vector.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
