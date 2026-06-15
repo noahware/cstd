@@ -226,4 +226,110 @@ namespace cstd
 			value_type value_;
 		};
 	};
+
+	// optional vs optional
+
+	template <class T>
+	[[nodiscard]] constexpr bool operator==(const optional<T>& left, const optional<T>& right)
+	{
+		if (left.has_value() != right.has_value())
+		{
+			return false;
+		}
+		if (!left.has_value())
+		{
+			return true;
+		}
+		return *left == *right;
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr bool operator!=(const optional<T>& left, const optional<T>& right)
+	{
+		return !(left == right);
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr bool operator<(const optional<T>& left, const optional<T>& right)
+	{
+		if (!right.has_value())
+		{
+			return false;
+		}
+		if (!left.has_value())
+		{
+			return true;
+		}
+		return *left < *right;
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr bool operator>(const optional<T>& left, const optional<T>& right)
+	{
+		return right < left;
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr bool operator<=(const optional<T>& left, const optional<T>& right)
+	{
+		return !(right < left);
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr bool operator>=(const optional<T>& left, const optional<T>& right)
+	{
+		return !(left < right);
+	}
+
+	// optional vs nullopt
+
+	template <class T>
+	[[nodiscard]] constexpr bool operator==(const optional<T>& opt, nullopt_type) noexcept
+	{
+		return !opt.has_value();
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr bool operator==(nullopt_type, const optional<T>& opt) noexcept
+	{
+		return !opt.has_value();
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr bool operator!=(const optional<T>& opt, nullopt_type) noexcept
+	{
+		return opt.has_value();
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr bool operator!=(nullopt_type, const optional<T>& opt) noexcept
+	{
+		return opt.has_value();
+	}
+
+	// optional vs value
+
+	template <class T>
+	[[nodiscard]] constexpr bool operator==(const optional<T>& opt, const T& value)
+	{
+		return opt.has_value() && *opt == value;
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr bool operator==(const T& value, const optional<T>& opt)
+	{
+		return opt.has_value() && value == *opt;
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr bool operator!=(const optional<T>& opt, const T& value)
+	{
+		return !opt.has_value() || *opt != value;
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr bool operator!=(const T& value, const optional<T>& opt)
+	{
+		return !opt.has_value() || value != *opt;
+	}
 }

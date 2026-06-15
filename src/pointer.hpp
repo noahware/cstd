@@ -217,6 +217,130 @@ namespace cstd
 		atomic<size_type>* reference_count_ = nullptr;
 	};
 
+	// unique_ptr comparisons
+
+	template <class T, class U>
+	[[nodiscard]] bool operator==(const unique_ptr<T>& left, const unique_ptr<U>& right) noexcept
+	{
+		return left.get() == right.get();
+	}
+
+	template <class T, class U>
+	[[nodiscard]] bool operator!=(const unique_ptr<T>& left, const unique_ptr<U>& right) noexcept
+	{
+		return left.get() != right.get();
+	}
+
+	template <class T, class U>
+	[[nodiscard]] bool operator<(const unique_ptr<T>& left, const unique_ptr<U>& right) noexcept
+	{
+		return left.get() < right.get();
+	}
+
+	template <class T, class U>
+	[[nodiscard]] bool operator>(const unique_ptr<T>& left, const unique_ptr<U>& right) noexcept
+	{
+		return right < left;
+	}
+
+	template <class T, class U>
+	[[nodiscard]] bool operator<=(const unique_ptr<T>& left, const unique_ptr<U>& right) noexcept
+	{
+		return !(right < left);
+	}
+
+	template <class T, class U>
+	[[nodiscard]] bool operator>=(const unique_ptr<T>& left, const unique_ptr<U>& right) noexcept
+	{
+		return !(left < right);
+	}
+
+	template <class T>
+	[[nodiscard]] bool operator==(const unique_ptr<T>& left, decltype(nullptr)) noexcept
+	{
+		return !left;
+	}
+
+	template <class T>
+	[[nodiscard]] bool operator==(decltype(nullptr), const unique_ptr<T>& right) noexcept
+	{
+		return !right;
+	}
+
+	template <class T>
+	[[nodiscard]] bool operator!=(const unique_ptr<T>& left, decltype(nullptr)) noexcept
+	{
+		return static_cast<bool>(left);
+	}
+
+	template <class T>
+	[[nodiscard]] bool operator!=(decltype(nullptr), const unique_ptr<T>& right) noexcept
+	{
+		return static_cast<bool>(right);
+	}
+
+	// shared_ptr comparisons
+
+	template <class T, class U>
+	[[nodiscard]] bool operator==(const shared_ptr<T>& left, const shared_ptr<U>& right) noexcept
+	{
+		return left.get() == right.get();
+	}
+
+	template <class T, class U>
+	[[nodiscard]] bool operator!=(const shared_ptr<T>& left, const shared_ptr<U>& right) noexcept
+	{
+		return left.get() != right.get();
+	}
+
+	template <class T, class U>
+	[[nodiscard]] bool operator<(const shared_ptr<T>& left, const shared_ptr<U>& right) noexcept
+	{
+		return left.get() < right.get();
+	}
+
+	template <class T, class U>
+	[[nodiscard]] bool operator>(const shared_ptr<T>& left, const shared_ptr<U>& right) noexcept
+	{
+		return right < left;
+	}
+
+	template <class T, class U>
+	[[nodiscard]] bool operator<=(const shared_ptr<T>& left, const shared_ptr<U>& right) noexcept
+	{
+		return !(right < left);
+	}
+
+	template <class T, class U>
+	[[nodiscard]] bool operator>=(const shared_ptr<T>& left, const shared_ptr<U>& right) noexcept
+	{
+		return !(left < right);
+	}
+
+	template <class T>
+	[[nodiscard]] bool operator==(const shared_ptr<T>& left, decltype(nullptr)) noexcept
+	{
+		return !left;
+	}
+
+	template <class T>
+	[[nodiscard]] bool operator==(decltype(nullptr), const shared_ptr<T>& right) noexcept
+	{
+		return !right;
+	}
+
+	template <class T>
+	[[nodiscard]] bool operator!=(const shared_ptr<T>& left, decltype(nullptr)) noexcept
+	{
+		return static_cast<bool>(left);
+	}
+
+	template <class T>
+	[[nodiscard]] bool operator!=(decltype(nullptr), const shared_ptr<T>& right) noexcept
+	{
+		return static_cast<bool>(right);
+	}
+
 	template <class T, class... Args>
 	unique_ptr<T> make_unique(Args&&... args)
 	{
