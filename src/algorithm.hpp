@@ -51,6 +51,78 @@ namespace cstd
 	}
 
 	template <class T>
+	[[nodiscard]] constexpr T* find_first_of(T* first, T* const last, const T* s_first, const T* const s_last)
+	{
+		for (; first != last; ++first)
+		{
+			for (const T* s = s_first; s != s_last; ++s)
+			{
+				if (*first == *s)
+				{
+					return first;
+				}
+			}
+		}
+
+		return last;
+	}
+
+	template <class T, class BinaryPredicate>
+	[[nodiscard]] constexpr T* find_first_of(T* first, T* const last, const T* s_first, const T* const s_last, BinaryPredicate predicate)
+	{
+		for (; first != last; ++first)
+		{
+			for (const T* s = s_first; s != s_last; ++s)
+			{
+				if (predicate(*first, *s))
+				{
+					return first;
+				}
+			}
+		}
+
+		return last;
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr T* adjacent_find(T* first, T* const last)
+	{
+		if (first == last)
+		{
+			return last;
+		}
+
+		for (T* next = first + 1; next != last; ++first, ++next)
+		{
+			if (*first == *next)
+			{
+				return first;
+			}
+		}
+
+		return last;
+	}
+
+	template <class T, class BinaryPredicate>
+	[[nodiscard]] constexpr T* adjacent_find(T* first, T* const last, BinaryPredicate predicate)
+	{
+		if (first == last)
+		{
+			return last;
+		}
+
+		for (T* next = first + 1; next != last; ++first, ++next)
+		{
+			if (predicate(*first, *next))
+			{
+				return first;
+			}
+		}
+
+		return last;
+	}
+
+	template <class T>
 	[[nodiscard]] constexpr size_t count(const T* first, const T* const last, const T& value)
 	{
 		size_t total = 0;
@@ -339,6 +411,112 @@ namespace cstd
 		}
 
 		return new_end;
+	}
+
+	template <class T, class UnaryPredicate>
+	constexpr T* copy_if(const T* first, const T* const last, T* destination, UnaryPredicate predicate)
+	{
+		for (; first != last; ++first)
+		{
+			if (predicate(*first))
+			{
+				*destination = *first;
+
+				++destination;
+			}
+		}
+
+		return destination;
+	}
+
+	template <class T>
+	constexpr T* fill_n(T* first, const size_t count, const T& value)
+	{
+		for (size_t i = 0; i < count; ++i, ++first)
+		{
+			*first = value;
+		}
+
+		return first;
+	}
+
+	template <class T>
+	constexpr void replace(T* first, T* const last, const T& old_value, const T& new_value)
+	{
+		for (; first != last; ++first)
+		{
+			if (*first == old_value)
+			{
+				*first = new_value;
+			}
+		}
+	}
+
+	template <class T, class UnaryPredicate>
+	constexpr void replace_if(T* first, T* const last, UnaryPredicate predicate, const T& new_value)
+	{
+		for (; first != last; ++first)
+		{
+			if (predicate(*first))
+			{
+				*first = new_value;
+			}
+		}
+	}
+
+	// Stable in-place dedup of consecutive equal runs: keeps the first of each run and
+	// returns the new logical end (physical tail left intact, like remove).
+
+	template <class T>
+	[[nodiscard]] constexpr T* unique(T* first, T* const last)
+	{
+		if (first == last)
+		{
+			return last;
+		}
+
+		T* result = first;
+
+		while (++first != last)
+		{
+			if (!(*result == *first))
+			{
+				++result;
+
+				if (result != first)
+				{
+					*result = move(*first);
+				}
+			}
+		}
+
+		return result + 1;
+	}
+
+	template <class T, class BinaryPredicate>
+	[[nodiscard]] constexpr T* unique(T* first, T* const last, BinaryPredicate predicate)
+	{
+		if (first == last)
+		{
+			return last;
+		}
+
+		T* result = first;
+
+		while (++first != last)
+		{
+			if (!predicate(*result, *first))
+			{
+				++result;
+
+				if (result != first)
+				{
+					*result = move(*first);
+				}
+			}
+		}
+
+		return result + 1;
 	}
 
 	// Default ordering functors (no <functional>). Heterogeneous operands so a single
