@@ -31,6 +31,10 @@ namespace cstd
     template <> struct is_integral<long long>          { static constexpr bool value = true; };
     template <> struct is_integral<unsigned long long> { static constexpr bool value = true; };
 
+    template <class T> struct is_integral<const T> : is_integral<T> { };
+    template <class T> struct is_integral<volatile T> : is_integral<T> { };
+    template <class T> struct is_integral<const volatile T> : is_integral<T> { };
+
     template <class T>
     inline constexpr bool is_integral_v = is_integral<T>::value;
 
@@ -197,4 +201,133 @@ namespace cstd
 
     template <class From, class To>
     struct is_convertible : integral_constant<bool, is_convertible_v<From, To>> { };
+
+    // Primary type categories
+
+    template <class T> struct is_floating_point
+        : integral_constant<bool,
+            is_same_v<remove_cv_t<T>, float>
+            || is_same_v<remove_cv_t<T>, double>
+            || is_same_v<remove_cv_t<T>, long double>> { };
+    template <class T> inline constexpr bool is_floating_point_v = is_floating_point<T>::value;
+
+    template <class T> struct is_array : false_type { };
+    template <class T> struct is_array<T[]> : true_type { };
+    template <class T, decltype(sizeof(0)) N> struct is_array<T[N]> : true_type { };
+    template <class T> inline constexpr bool is_array_v = is_array<T>::value;
+
+    template <class T> struct is_enum : integral_constant<bool, __is_enum(T)> { };
+    template <class T> inline constexpr bool is_enum_v = is_enum<T>::value;
+
+    template <class T> struct is_union : integral_constant<bool, __is_union(T)> { };
+    template <class T> inline constexpr bool is_union_v = is_union<T>::value;
+
+    template <class T> struct is_class : integral_constant<bool, __is_class(T)> { };
+    template <class T> inline constexpr bool is_class_v = is_class<T>::value;
+
+    template <class T> struct is_null_pointer
+        : integral_constant<bool, is_same_v<remove_cv_t<T>, decltype(nullptr)>> { };
+    template <class T> inline constexpr bool is_null_pointer_v = is_null_pointer<T>::value;
+
+    namespace detail
+    {
+        template <class T> struct is_member_pointer_impl : false_type { };
+        template <class T, class C> struct is_member_pointer_impl<T C::*> : true_type { };
+    }
+
+    template <class T> struct is_member_pointer : detail::is_member_pointer_impl<remove_cv_t<T>> { };
+    template <class T> inline constexpr bool is_member_pointer_v = is_member_pointer<T>::value;
+
+    // Composite type categories
+
+    template <class T> struct is_arithmetic
+        : integral_constant<bool, is_integral_v<T> || is_floating_point_v<T>> { };
+    template <class T> inline constexpr bool is_arithmetic_v = is_arithmetic<T>::value;
+
+    template <class T> struct is_fundamental
+        : integral_constant<bool, is_arithmetic_v<T> || is_void_v<T> || is_null_pointer_v<T>> { };
+    template <class T> inline constexpr bool is_fundamental_v = is_fundamental<T>::value;
+
+    template <class T> struct is_scalar
+        : integral_constant<bool, is_arithmetic_v<T> || is_enum_v<T> || is_pointer_v<T>
+            || is_member_pointer_v<T> || is_null_pointer_v<T>> { };
+    template <class T> inline constexpr bool is_scalar_v = is_scalar<T>::value;
+
+    template <class T> struct is_object
+        : integral_constant<bool, is_scalar_v<T> || is_array_v<T> || is_union_v<T> || is_class_v<T>> { };
+    template <class T> inline constexpr bool is_object_v = is_object<T>::value;
+
+    // Every type is exactly one of object / reference / function / void, so a
+    // function type is whatever is left once the other three are excluded.
+    // Stated this way it never forms `const` on a function type (which warns).
+    template <class T> struct is_function
+        : integral_constant<bool, !is_object_v<T> && !is_reference_v<T> && !is_void_v<T>> { };
+    template <class T> inline constexpr bool is_function_v = is_function<T>::value;
+
+    namespace detail
+    {
+        template <class T> struct is_member_function_pointer_impl : false_type { };
+        template <class T, class C> struct is_member_function_pointer_impl<T C::*>
+            : integral_constant<bool, is_function_v<T>> { };
+    }
+
+    template <class T> struct is_member_function_pointer : detail::is_member_function_pointer_impl<remove_cv_t<T>> { };
+    template <class T> inline constexpr bool is_member_function_pointer_v = is_member_function_pointer<T>::value;
+
+    template <class T> struct is_member_object_pointer
+        : integral_constant<bool, is_member_pointer_v<T> && !is_member_function_pointer_v<T>> { };
+    template <class T> inline constexpr bool is_member_object_pointer_v = is_member_object_pointer<T>::value;
+
+    template <class T> struct is_compound : integral_constant<bool, !is_fundamental_v<T>> { };
+    template <class T> inline constexpr bool is_compound_v = is_compound<T>::value;
+
+    // Type properties
+
+    template <class T> struct is_volatile : false_type { };
+    template <class T> struct is_volatile<volatile T> : true_type { };
+    template <class T> inline constexpr bool is_volatile_v = is_volatile<T>::value;
+
+    namespace detail
+    {
+        template <class T, bool = is_arithmetic_v<T>>
+        struct is_signed_impl : integral_constant<bool, (T(-1) < T(0))> { };
+        template <class T> struct is_signed_impl<T, false> : false_type { };
+
+        template <class T, bool = is_arithmetic_v<T>>
+        struct is_unsigned_impl : integral_constant<bool, (T(0) < T(-1))> { };
+        template <class T> struct is_unsigned_impl<T, false> : false_type { };
+    }
+
+    template <class T> struct is_signed : detail::is_signed_impl<T> { };
+    template <class T> inline constexpr bool is_signed_v = is_signed<T>::value;
+
+    template <class T> struct is_unsigned : detail::is_unsigned_impl<T> { };
+    template <class T> inline constexpr bool is_unsigned_v = is_unsigned<T>::value;
+
+    template <class T> struct is_empty : integral_constant<bool, __is_empty(T)> { };
+    template <class T> inline constexpr bool is_empty_v = is_empty<T>::value;
+
+    template <class T> struct is_polymorphic : integral_constant<bool, __is_polymorphic(T)> { };
+    template <class T> inline constexpr bool is_polymorphic_v = is_polymorphic<T>::value;
+
+    template <class T> struct is_abstract : integral_constant<bool, __is_abstract(T)> { };
+    template <class T> inline constexpr bool is_abstract_v = is_abstract<T>::value;
+
+    template <class T> struct is_final : integral_constant<bool, __is_final(T)> { };
+    template <class T> inline constexpr bool is_final_v = is_final<T>::value;
+
+    template <class T> struct is_aggregate : integral_constant<bool, __is_aggregate(T)> { };
+    template <class T> inline constexpr bool is_aggregate_v = is_aggregate<T>::value;
+
+    template <class T> struct is_standard_layout : integral_constant<bool, __is_standard_layout(T)> { };
+    template <class T> inline constexpr bool is_standard_layout_v = is_standard_layout<T>::value;
+
+    template <class T> struct is_trivial : integral_constant<bool, __is_trivial(T)> { };
+    template <class T> inline constexpr bool is_trivial_v = is_trivial<T>::value;
+
+    template <class T> struct is_destructible : integral_constant<bool, __is_destructible(T)> { };
+    template <class T> inline constexpr bool is_destructible_v = is_destructible<T>::value;
+
+    template <class T> struct has_virtual_destructor : integral_constant<bool, __has_virtual_destructor(T)> { };
+    template <class T> inline constexpr bool has_virtual_destructor_v = has_virtual_destructor<T>::value;
 }
