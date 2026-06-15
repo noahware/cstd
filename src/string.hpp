@@ -148,7 +148,124 @@ namespace cstd
 			return size() == 0;
 		}
 
+		[[nodiscard]] reference front()
+		{
+			CSTD_ASSERT(!empty(), "[base_string] front() called on an empty string");
+
+			return elements_[0];
+		}
+
+		[[nodiscard]] const_reference front() const
+		{
+			CSTD_ASSERT(!empty(), "[base_string] front() called on an empty string");
+
+			return elements_[0];
+		}
+
+		[[nodiscard]] reference back()
+		{
+			CSTD_ASSERT(!empty(), "[base_string] back() called on an empty string");
+
+			return elements_[size() - 1];
+		}
+
+		[[nodiscard]] const_reference back() const
+		{
+			CSTD_ASSERT(!empty(), "[base_string] back() called on an empty string");
+
+			return elements_[size() - 1];
+		}
+
+		[[nodiscard]] reference at(const size_type index)
+		{
+			CSTD_ASSERT(index < size(), "[base_string] at() index out of range");
+
+			return elements_[index];
+		}
+
+		[[nodiscard]] const_reference at(const size_type index) const
+		{
+			CSTD_ASSERT(index < size(), "[base_string] at() index out of range");
+
+			return elements_[index];
+		}
+
+		[[nodiscard]] size_type find(const base_string_view<character_type>& needle, const size_type offset = 0) const
+		{
+			return as_view().find(needle, offset);
+		}
+
+		[[nodiscard]] size_type find(const character_type character, const size_type offset = 0) const
+		{
+			return as_view().find(character, offset);
+		}
+
+		[[nodiscard]] size_type rfind(const base_string_view<character_type>& needle, const size_type offset = npos) const
+		{
+			return as_view().rfind(needle, offset);
+		}
+
+		[[nodiscard]] size_type rfind(const character_type character, const size_type offset = npos) const
+		{
+			return as_view().rfind(character, offset);
+		}
+
+		[[nodiscard]] size_type find_first_of(const base_string_view<character_type>& set, const size_type offset = 0) const
+		{
+			return as_view().find_first_of(set, offset);
+		}
+
+		[[nodiscard]] size_type find_first_of(const character_type character, const size_type offset = 0) const
+		{
+			return as_view().find_first_of(character, offset);
+		}
+
+		[[nodiscard]] size_type find_last_of(const base_string_view<character_type>& set, const size_type offset = npos) const
+		{
+			return as_view().find_last_of(set, offset);
+		}
+
+		[[nodiscard]] size_type find_last_of(const character_type character, const size_type offset = npos) const
+		{
+			return as_view().find_last_of(character, offset);
+		}
+
+		[[nodiscard]] size_type find_first_not_of(const base_string_view<character_type>& set, const size_type offset = 0) const
+		{
+			return as_view().find_first_not_of(set, offset);
+		}
+
+		[[nodiscard]] size_type find_first_not_of(const character_type character, const size_type offset = 0) const
+		{
+			return as_view().find_first_not_of(character, offset);
+		}
+
+		[[nodiscard]] size_type find_last_not_of(const base_string_view<character_type>& set, const size_type offset = npos) const
+		{
+			return as_view().find_last_not_of(set, offset);
+		}
+
+		[[nodiscard]] size_type find_last_not_of(const character_type character, const size_type offset = npos) const
+		{
+			return as_view().find_last_not_of(character, offset);
+		}
+
+		[[nodiscard]] bool contains(const base_string_view<character_type>& needle) const
+		{
+			return as_view().contains(needle);
+		}
+
+		[[nodiscard]] bool contains(const character_type character) const
+		{
+			return as_view().contains(character);
+		}
+
 	protected:
+		[[nodiscard]] base_string_view<character_type> as_view() const noexcept
+		{
+			return base_string_view<character_type>(data(), size());
+		}
+
 		void append_raw(const_pointer const data, const size_type count)
 		{
 			for (size_type i = 0; i < count; ++i)
@@ -224,23 +341,6 @@ namespace cstd
 			}
 
 			return string(data() + position, count);
-		}
-
-		[[nodiscard]] size_type find(const string_view& substr, const size_type offset = 0) const
-		{
-			const const_pointer found = crt::strstr(data() + offset, substr.data());
-
-			if (found == nullptr)
-			{
-				return npos;
-			}
-
-			return found - data();
-		}
-
-		[[nodiscard]] bool contains(const string_view& substr) const
-		{
-			return find(substr) != npos;
 		}
 
 		[[nodiscard]] bool starts_with(const string_view& prefix) const
@@ -390,23 +490,6 @@ namespace cstd
 			}
 
 			return wstring(data() + position, count);
-		}
-
-		[[nodiscard]] size_type find(const wstring_view& substr, const size_type offset = 0) const
-		{
-			const const_pointer found = crt::wcsstr(data() + offset, substr.data());
-
-			if (found == nullptr)
-			{
-				return npos;
-			}
-
-			return found - data();
-		}
-
-		[[nodiscard]] bool contains(const wstring_view& substr) const
-		{
-			return find(substr) != npos;
 		}
 
 		[[nodiscard]] bool starts_with(const wstring_view& prefix) const
