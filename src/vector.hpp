@@ -195,6 +195,11 @@ namespace cstd
 			return max_size_;
 		}
 
+		[[nodiscard]] size_type capacity() const noexcept
+		{
+			return max_size_;
+		}
+
 		[[nodiscard]] pointer data() noexcept
 		{
 			return elements_;
@@ -356,6 +361,43 @@ namespace cstd
 			}
 
 			size_ = new_size;
+		}
+
+		void resize(const size_type new_size, const_reference value)
+		{
+			if (new_size < size_)
+			{
+				deconstruct_elements(begin() + new_size, begin() + size_);
+			}
+			else
+			{
+				if (max_size_ < new_size)
+				{
+					reserve(new_size);
+				}
+
+				for (size_type i = size_; i < new_size; ++i)
+				{
+					new (elements_ + i) T(value);
+				}
+			}
+
+			size_ = new_size;
+		}
+
+		void swap(vector& other) noexcept
+		{
+			pointer const other_elements = other.elements_;
+			const size_type other_size = other.size_;
+			const size_type other_max_size = other.max_size_;
+
+			other.elements_ = elements_;
+			other.size_ = size_;
+			other.max_size_ = max_size_;
+
+			elements_ = other_elements;
+			size_ = other_size;
+			max_size_ = other_max_size;
 		}
 
 		void assign(const size_type count, const_reference value)
@@ -636,5 +678,11 @@ namespace cstd
 	[[nodiscard]] bool operator>=(const vector<T>& left, const vector<T>& right) noexcept
 	{
 		return !(left < right);
+	}
+
+	template <class T>
+	void swap(vector<T>& left, vector<T>& right) noexcept
+	{
+		left.swap(right);
 	}
 }
