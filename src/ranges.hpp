@@ -181,4 +181,111 @@ namespace cstd::ranges
 	{
 		return cstd::is_sorted(range.begin(), range.end());
 	}
+
+	template <class T>
+	constexpr T* copy(const cstd::span<T> source, T* destination)
+	{
+		return cstd::copy(source.begin(), source.end(), destination);
+	}
+
+	template <class T, class UnaryPredicate>
+	constexpr T* copy_if(const cstd::span<T> source, T* destination, UnaryPredicate predicate)
+	{
+		return cstd::copy_if(source.begin(), source.end(), destination, predicate);
+	}
+
+	template <class T, class U, class UnaryOperation>
+	constexpr U* transform(const cstd::span<T> source, U* destination, UnaryOperation operation)
+	{
+		return cstd::transform(source.begin(), source.end(), destination, operation);
+	}
+
+	template <class T, class U, class V, class BinaryOperation>
+	constexpr V* transform(const cstd::span<T> first, const cstd::span<U> second, V* destination, BinaryOperation operation)
+	{
+		return cstd::transform(first.begin(), first.end(), second.begin(), destination, operation);
+	}
+
+	template <class T, class BinaryPredicate>
+	[[nodiscard]] constexpr bool equal(const cstd::span<T> left, const cstd::span<T> right, BinaryPredicate predicate)
+	{
+		if (left.size() != right.size())
+		{
+			return false;
+		}
+
+		return cstd::equal(left.begin(), left.end(), right.begin(), predicate);
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr T* find_first_of(const cstd::span<T> range, const cstd::span<T> targets)
+	{
+		return cstd::find_first_of(range.begin(), range.end(), targets.begin(), targets.end());
+	}
+
+	template <class T, class BinaryPredicate>
+	[[nodiscard]] constexpr T* find_first_of(const cstd::span<T> range, const cstd::span<T> targets, BinaryPredicate predicate)
+	{
+		return cstd::find_first_of(range.begin(), range.end(), targets.begin(), targets.end(), predicate);
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr T* adjacent_find(const cstd::span<T> range)
+	{
+		return cstd::adjacent_find(range.begin(), range.end());
+	}
+
+	template <class T, class BinaryPredicate>
+	[[nodiscard]] constexpr T* adjacent_find(const cstd::span<T> range, BinaryPredicate predicate)
+	{
+		return cstd::adjacent_find(range.begin(), range.end(), predicate);
+	}
+
+	template <class T>
+	constexpr void replace(const cstd::span<T> range, const T& old_value, const T& new_value)
+	{
+		cstd::replace(range.begin(), range.end(), old_value, new_value);
+	}
+
+	template <class T, class UnaryPredicate>
+	constexpr void replace_if(const cstd::span<T> range, UnaryPredicate predicate, const T& new_value)
+	{
+		cstd::replace_if(range.begin(), range.end(), predicate, new_value);
+	}
+
+	template <class T>
+	[[nodiscard]] constexpr T* unique(const cstd::span<T> range)
+	{
+		return cstd::unique(range.begin(), range.end());
+	}
+
+	template <class T, class BinaryPredicate>
+	[[nodiscard]] constexpr T* unique(const cstd::span<T> range, BinaryPredicate predicate)
+	{
+		return cstd::unique(range.begin(), range.end(), predicate);
+	}
+
+	template <class T, class Compare>
+	[[nodiscard]] constexpr T* lower_bound(const cstd::span<T> range, const T& value, Compare compare)
+	{
+		return cstd::lower_bound(range.begin(), range.end(), value, compare);
+	}
+
+	template <class T, class Compare>
+	[[nodiscard]] constexpr T* upper_bound(const cstd::span<T> range, const T& value, Compare compare)
+	{
+		return cstd::upper_bound(range.begin(), range.end(), value, compare);
+	}
+
+	template <class T, class Compare>
+	[[nodiscard]] constexpr bool binary_search(const cstd::span<T> range, const T& value, Compare compare)
+	{
+		return cstd::binary_search(range.begin(), range.end(), value, compare);
+	}
+
+	template <class T, class Compare>
+	[[nodiscard]] constexpr bool is_sorted(const cstd::span<T> range, Compare compare)
+	{
+		return cstd::is_sorted(range.begin(), range.end(), compare);
+	}
 }
