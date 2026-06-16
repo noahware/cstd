@@ -28,6 +28,8 @@ extern "C"
 	__int64 _InterlockedCompareExchange64(__int64 volatile*, __int64, __int64);
 
 	void _mm_pause(void);
+	void _mm_mfence(void);
+	void _ReadWriteBarrier(void);
 }
 
 #pragma intrinsic(_InterlockedCompareExchange8)
@@ -35,6 +37,8 @@ extern "C"
 #pragma intrinsic(_InterlockedCompareExchange)
 #pragma intrinsic(_InterlockedCompareExchange64)
 #pragma intrinsic(_mm_pause)
+#pragma intrinsic(_mm_mfence)
+#pragma intrinsic(_ReadWriteBarrier)
 
 #elif defined(__GNUC__) || defined(__clang__)
 	// __atomic_* are compiler builtins; no declarations required.
@@ -333,4 +337,25 @@ namespace cstd
 
 		alignas(sizeof(T)) T value_;
 	};
+
+	inline void atomic_thread_fence(const memory_order order) noexcept
+	{
+#if defined(_MSC_VER)
+		if (order == memory_order::relaxed)
+		{
+			return;
+		}
+
+		_ReadWriteBarrier();
+
+		if (order == memory_order::seq_cst)
+		{
+			_mm_mfence();
+		}
+
+		_ReadWriteBarrier();
+#else
+		__atomic_thread_fence(static_cast<int>(order));
+#endif
+	}
 }
