@@ -23,6 +23,12 @@ namespace cstd
 		{
 			return obj.*pm;
 		}
+
+		template <class M, class C, class T>
+		constexpr auto invoke(M C::* pm, T& obj) -> decltype((*obj).*pm)
+		{
+			return (*obj).*pm;
+		}
 	}
 
 	// Non-modifying sequence operations over iterator ranges [first, last).
