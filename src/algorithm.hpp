@@ -71,6 +71,18 @@ namespace cstd
 		return last;
 	}
 
+	template <class Iter, class T>
+	[[nodiscard]] constexpr bool contains(Iter first, const Iter last, const T& value)
+	{
+		return find(first, last, value) != last;
+	}
+
+	template <class Iter, class T, class Proj>
+	[[nodiscard]] constexpr bool contains(Iter first, const Iter last, const T& value, Proj proj)
+	{
+		return find(first, last, value, proj) != last;
+	}
+
 	template <class Iter1, class Iter2>
 	[[nodiscard]] constexpr Iter1 find_first_of(Iter1 first, const Iter1 last, Iter2 s_first, const Iter2 s_last)
 	{
@@ -928,6 +940,18 @@ namespace cstd
 	[[nodiscard]] constexpr auto find_if_not(Range& range, UnaryPredicate predicate)
 	{
 		return find_if_not(range.begin(), range.end(), predicate);
+	}
+
+	template <class Range, class T>
+	[[nodiscard]] constexpr bool contains(Range& range, const T& value)
+	{
+		return find(range.begin(), range.end(), value) != range.end();
+	}
+
+	template <class Range, class T, class Proj>
+	[[nodiscard]] constexpr bool contains(Range& range, const T& value, Proj proj)
+	{
+		return find(range.begin(), range.end(), value, proj) != range.end();
 	}
 
 	template <class Range1, class Range2>
