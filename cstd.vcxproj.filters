@@ -95,5 +95,8 @@
     <ClInclude Include="src\limits.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\unordered_map.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

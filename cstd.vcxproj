@@ -175,6 +175,7 @@
     <ClInclude Include="src\string_view.hpp" />
     <ClInclude Include="src\types.hpp" />
     <ClInclude Include="src\type_traits.hpp" />
+    <ClInclude Include="src\unordered_map.hpp" />
     <ClInclude Include="src\utility.hpp" />
     <ClInclude Include="src\limits.hpp" />
     <ClInclude Include="src\vector.hpp" />
