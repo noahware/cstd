@@ -71,10 +71,10 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)src;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(SolutionDir)src;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -150,38 +150,38 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\crt.cpp" />
-    <ClCompile Include="tests\main.cpp" />
+    <ClCompile Include="crt.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\algorithm.hpp" />
-    <ClInclude Include="src\atomic.hpp" />
-    <ClInclude Include="src\array.hpp" />
-    <ClInclude Include="src\exception.hpp" />
-    <ClInclude Include="src\expected.hpp" />
-    <ClInclude Include="src\bitset.hpp" />
-    <ClInclude Include="src\flat_map.hpp" />
-    <ClInclude Include="src\function.hpp" />
-    <ClInclude Include="src\list.hpp" />
-    <ClInclude Include="src\hash.hpp" />
-    <ClInclude Include="src\initializer_list.hpp" />
-    <ClInclude Include="src\crt.hpp" />
-    <ClInclude Include="src\mutex.hpp" />
-    <ClInclude Include="src\optional.hpp" />
-    <ClInclude Include="src\pair.hpp" />
-    <ClInclude Include="src\pointer.hpp" />
-    <ClInclude Include="src\ranges.hpp" />
-    <ClInclude Include="src\span.hpp" />
-    <ClInclude Include="src\string.hpp" />
-    <ClInclude Include="src\string_view.hpp" />
-    <ClInclude Include="src\types.hpp" />
-    <ClInclude Include="src\type_traits.hpp" />
-    <ClInclude Include="src\ring_buffer.hpp" />
-    <ClInclude Include="src\static_ring_buffer.hpp" />
-    <ClInclude Include="src\unordered_map.hpp" />
-    <ClInclude Include="src\utility.hpp" />
-    <ClInclude Include="src\limits.hpp" />
-    <ClInclude Include="src\vector.hpp" />
+    <ClInclude Include="..\..\src\algorithm.hpp" />
+    <ClInclude Include="..\..\src\atomic.hpp" />
+    <ClInclude Include="..\..\src\array.hpp" />
+    <ClInclude Include="..\..\src\exception.hpp" />
+    <ClInclude Include="..\..\src\expected.hpp" />
+    <ClInclude Include="..\..\src\bitset.hpp" />
+    <ClInclude Include="..\..\src\flat_map.hpp" />
+    <ClInclude Include="..\..\src\function.hpp" />
+    <ClInclude Include="..\..\src\list.hpp" />
+    <ClInclude Include="..\..\src\hash.hpp" />
+    <ClInclude Include="..\..\src\initializer_list.hpp" />
+    <ClInclude Include="..\..\src\crt.hpp" />
+    <ClInclude Include="..\..\src\mutex.hpp" />
+    <ClInclude Include="..\..\src\optional.hpp" />
+    <ClInclude Include="..\..\src\pair.hpp" />
+    <ClInclude Include="..\..\src\pointer.hpp" />
+    <ClInclude Include="..\..\src\ranges.hpp" />
+    <ClInclude Include="..\..\src\span.hpp" />
+    <ClInclude Include="..\..\src\string.hpp" />
+    <ClInclude Include="..\..\src\string_view.hpp" />
+    <ClInclude Include="..\..\src\types.hpp" />
+    <ClInclude Include="..\..\src\type_traits.hpp" />
+    <ClInclude Include="..\..\src\ring_buffer.hpp" />
+    <ClInclude Include="..\..\src\static_ring_buffer.hpp" />
+    <ClInclude Include="..\..\src\unordered_map.hpp" />
+    <ClInclude Include="..\..\src\utility.hpp" />
+    <ClInclude Include="..\..\src\limits.hpp" />
+    <ClInclude Include="..\..\src\vector.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

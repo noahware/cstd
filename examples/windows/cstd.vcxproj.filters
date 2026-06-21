@@ -15,96 +15,96 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="tests\main.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\crt.cpp">
+    <ClCompile Include="crt.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\algorithm.hpp">
+    <ClInclude Include="..\..\src\algorithm.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\atomic.hpp">
+    <ClInclude Include="..\..\src\atomic.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\types.hpp">
+    <ClInclude Include="..\..\src\types.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\crt.hpp">
+    <ClInclude Include="..\..\src\crt.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\array.hpp">
+    <ClInclude Include="..\..\src\array.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\vector.hpp">
+    <ClInclude Include="..\..\src\vector.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\exception.hpp">
+    <ClInclude Include="..\..\src\exception.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\expected.hpp">
+    <ClInclude Include="..\..\src\expected.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\ranges.hpp">
+    <ClInclude Include="..\..\src\ranges.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\bitset.hpp">
+    <ClInclude Include="..\..\src\bitset.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\flat_map.hpp">
+    <ClInclude Include="..\..\src\flat_map.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\function.hpp">
+    <ClInclude Include="..\..\src\function.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\list.hpp">
+    <ClInclude Include="..\..\src\list.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\pair.hpp">
+    <ClInclude Include="..\..\src\pair.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\initializer_list.hpp">
+    <ClInclude Include="..\..\src\initializer_list.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\string_view.hpp">
+    <ClInclude Include="..\..\src\string_view.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\string.hpp">
+    <ClInclude Include="..\..\src\string.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\pointer.hpp">
+    <ClInclude Include="..\..\src\pointer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\span.hpp">
+    <ClInclude Include="..\..\src\span.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\type_traits.hpp">
+    <ClInclude Include="..\..\src\type_traits.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\hash.hpp">
+    <ClInclude Include="..\..\src\hash.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\optional.hpp">
+    <ClInclude Include="..\..\src\optional.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\mutex.hpp">
+    <ClInclude Include="..\..\src\mutex.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\utility.hpp">
+    <ClInclude Include="..\..\src\utility.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\limits.hpp">
+    <ClInclude Include="..\..\src\limits.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\ring_buffer.hpp">
+    <ClInclude Include="..\..\src\ring_buffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\static_ring_buffer.hpp">
+    <ClInclude Include="..\..\src\static_ring_buffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\unordered_map.hpp">
+    <ClInclude Include="..\..\src\unordered_map.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
