@@ -56,8 +56,16 @@ namespace cstd
 		explicit unique_ptr(const pointer object)
 				:	base_ptr<T>(object) { }
 
-		// add derived class support to cast
 		template <class U> friend class unique_ptr;
+
+		template <class To, class From>
+		friend unique_ptr<To> static_pointer_cast(unique_ptr<From>&&) noexcept;
+
+		template <class To, class From>
+		friend unique_ptr<To> const_pointer_cast(unique_ptr<From>&&) noexcept;
+
+		template <class To, class From>
+		friend unique_ptr<To> reinterpret_pointer_cast(unique_ptr<From>&&) noexcept;
 
 		template <class U>
 		unique_ptr(unique_ptr<U>&& right) noexcept
@@ -128,8 +136,16 @@ namespace cstd
 			}
 		}
 
-		// add derived class support to cast
 		template <class U> friend class shared_ptr;
+
+		template <class To, class From>
+		friend shared_ptr<To> static_pointer_cast(const shared_ptr<From>&) noexcept;
+
+		template <class To, class From>
+		friend shared_ptr<To> const_pointer_cast(const shared_ptr<From>&) noexcept;
+
+		template <class To, class From>
+		friend shared_ptr<To> reinterpret_pointer_cast(const shared_ptr<From>&) noexcept;
 
 		template <class U>
 		shared_ptr(const shared_ptr<U>& right) noexcept
@@ -356,5 +372,71 @@ namespace cstd
 		auto* count = new atomic<typename shared_ptr<T>::size_type>(1);
 
 		return shared_ptr<T>(object, count);
+	}
+
+	template <class To, class From>
+	[[nodiscard]] unique_ptr<To> static_pointer_cast(unique_ptr<From>&& ptr) noexcept
+	{
+		From* raw = ptr.object_;
+		ptr.object_ = nullptr;
+
+		return unique_ptr<To>(static_cast<To*>(raw));
+	}
+
+	template <class To, class From>
+	[[nodiscard]] unique_ptr<To> const_pointer_cast(unique_ptr<From>&& ptr) noexcept
+	{
+		From* raw = ptr.object_;
+		ptr.object_ = nullptr;
+
+		return unique_ptr<To>(const_cast<To*>(raw));
+	}
+
+	template <class To, class From>
+	[[nodiscard]] unique_ptr<To> reinterpret_pointer_cast(unique_ptr<From>&& ptr) noexcept
+	{
+		From* raw = ptr.object_;
+		ptr.object_ = nullptr;
+
+		return unique_ptr<To>(reinterpret_cast<To*>(raw));
+	}
+
+	template <class To, class From>
+	[[nodiscard]] shared_ptr<To> static_pointer_cast(const shared_ptr<From>& ptr) noexcept
+	{
+		if (!ptr)
+		{
+			return shared_ptr<To>();
+		}
+
+		ptr.reference_count_->fetch_add(1, memory_order::relaxed);
+
+		return shared_ptr<To>(static_cast<To*>(ptr.get()), ptr.reference_count_);
+	}
+
+	template <class To, class From>
+	[[nodiscard]] shared_ptr<To> const_pointer_cast(const shared_ptr<From>& ptr) noexcept
+	{
+		if (!ptr)
+		{
+			return shared_ptr<To>();
+		}
+
+		ptr.reference_count_->fetch_add(1, memory_order::relaxed);
+
+		return shared_ptr<To>(const_cast<To*>(ptr.get()), ptr.reference_count_);
+	}
+
+	template <class To, class From>
+	[[nodiscard]] shared_ptr<To> reinterpret_pointer_cast(const shared_ptr<From>& ptr) noexcept
+	{
+		if (!ptr)
+		{
+			return shared_ptr<To>();
+		}
+
+		ptr.reference_count_->fetch_add(1, memory_order::relaxed);
+
+		return shared_ptr<To>(reinterpret_cast<To*>(ptr.get()), ptr.reference_count_);
 	}
 }

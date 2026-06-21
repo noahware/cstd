@@ -20,6 +20,9 @@
 #include "type_traits.hpp"
 #include "exception.hpp"
 #include "types.hpp"
+#include "ring_buffer.hpp"
+#include "static_ring_buffer.hpp"
+#include "unordered_map.hpp"
 
 struct point
 {
@@ -131,6 +134,73 @@ static void test_shared_ptr_conversion()
 	CSTD_ASSERT(sq->sides_ == 4, "[test] shared_ptr object must outlive a dropped converting copy");
 }
 
+static void test_pointer_casts_shared()
+{
+	struct base { cstd::int32_t tag_ = 0; };
+	struct derived : base { cstd::int32_t extra_ = 99; };
+
+	cstd::shared_ptr<derived> d = cstd::make_shared<derived>();
+	d->tag_ = 42;
+
+	cstd::shared_ptr<base> b = cstd::static_pointer_cast<base>(d);
+	CSTD_ASSERT(b->tag_ == 42, "[static_pointer_cast] shared upcast");
+
+	cstd::shared_ptr<derived> back = cstd::static_pointer_cast<derived>(b);
+	CSTD_ASSERT(back->extra_ == 99, "[static_pointer_cast] shared downcast");
+
+	back->tag_ = 7;
+	CSTD_ASSERT(d->tag_ == 7, "[static_pointer_cast] shared ownership");
+
+	cstd::shared_ptr<base> empty;
+	cstd::shared_ptr<derived> empty_cast = cstd::static_pointer_cast<derived>(empty);
+	CSTD_ASSERT(!empty_cast, "[static_pointer_cast] shared null");
+
+	cstd::shared_ptr<const int> ci = cstd::make_shared<int>(10);
+	cstd::shared_ptr<int> mi = cstd::const_pointer_cast<int>(ci);
+	CSTD_ASSERT(*mi == 10, "[const_pointer_cast] shared value");
+	*mi = 20;
+	CSTD_ASSERT(*ci == 20, "[const_pointer_cast] shared ownership");
+
+	cstd::shared_ptr<const int> empty_const;
+	CSTD_ASSERT(!cstd::const_pointer_cast<int>(empty_const), "[const_pointer_cast] shared null");
+
+	cstd::shared_ptr<int> ri = cstd::make_shared<int>(55);
+	cstd::shared_ptr<int> ri2 = cstd::reinterpret_pointer_cast<int>(ri);
+	CSTD_ASSERT(*ri2 == 55, "[reinterpret_pointer_cast] shared identity");
+}
+
+static void test_pointer_casts_unique()
+{
+	struct base { cstd::int32_t tag_ = 0; };
+	struct derived : base { cstd::int32_t extra_ = 77; };
+
+	cstd::unique_ptr<derived> d = cstd::make_unique<derived>();
+	d->tag_ = 42;
+	d->extra_ = 77;
+
+	cstd::unique_ptr<base> b = cstd::static_pointer_cast<base>(cstd::move(d));
+	CSTD_ASSERT(!d, "[static_pointer_cast] unique source emptied");
+	CSTD_ASSERT(b->tag_ == 42, "[static_pointer_cast] unique upcast");
+
+	cstd::unique_ptr<derived> back = cstd::static_pointer_cast<derived>(cstd::move(b));
+	CSTD_ASSERT(!b, "[static_pointer_cast] unique source emptied 2");
+	CSTD_ASSERT(back->extra_ == 77, "[static_pointer_cast] unique downcast");
+
+	cstd::unique_ptr<derived> empty;
+	cstd::unique_ptr<base> empty_cast = cstd::static_pointer_cast<base>(cstd::move(empty));
+	CSTD_ASSERT(!empty_cast, "[static_pointer_cast] unique null");
+
+	cstd::unique_ptr<int> mi = cstd::make_unique<int>(10);
+	cstd::unique_ptr<const int> ci = cstd::const_pointer_cast<const int>(cstd::move(mi));
+	CSTD_ASSERT(!mi, "[const_pointer_cast] unique source emptied");
+	CSTD_ASSERT(*ci == 10, "[const_pointer_cast] unique value");
+
+	cstd::unique_ptr<int> ri = cstd::make_unique<int>(33);
+	cstd::unique_ptr<int> ri2 = cstd::reinterpret_pointer_cast<int>(cstd::move(ri));
+	CSTD_ASSERT(!ri, "[reinterpret_pointer_cast] unique source emptied");
+	CSTD_ASSERT(*ri2 == 33, "[reinterpret_pointer_cast] unique identity");
+}
+
 static void test_foundational_utilities()
 {
 	struct probe
@@ -182,6 +252,78 @@ static void test_foundational_utilities()
 	static_assert(!cstd::is_base_of_v<trait_derived, trait_base>, "is_base_of negative");
 	static_assert(cstd::is_convertible_v<trait_derived*, trait_base*>, "is_convertible");
 	static_assert(!cstd::is_convertible_v<trait_base*, trait_derived*>, "is_convertible negative");
+}
+
+static void test_numeric_limits()
+{
+	using il = cstd::numeric_limits<cstd::int32_t>;
+	CSTD_ASSERT(il::is_specialized && il::is_integer && il::is_exact && il::is_bounded, "[test] int32 integer flags");
+	CSTD_ASSERT(il::is_signed && !il::is_modulo && il::radix == 2, "[test] int32 signed/modulo/radix");
+	CSTD_ASSERT(il::digits == 31 && il::digits10 == 9, "[test] int32 digits/digits10");
+	CSTD_ASSERT(il::lowest() == il::min() && il::min() == -2147483647 - 1, "[test] int32 lowest equals min");
+	CSTD_ASSERT(!il::has_infinity && !il::is_iec559 && il::round_style == cstd::round_toward_zero, "[test] int32 float traits off");
+
+	using ul = cstd::numeric_limits<cstd::uint64_t>;
+	CSTD_ASSERT(!ul::is_signed && ul::is_modulo, "[test] uint64 unsigned is_modulo");
+	CSTD_ASSERT(ul::digits == 64 && ul::digits10 == 19, "[test] uint64 digits");
+	CSTD_ASSERT(ul::max() == 18446744073709551615ull && ul::min() == 0 && ul::lowest() == 0, "[test] uint64 max/min/lowest");
+
+	using bl = cstd::numeric_limits<bool>;
+	CSTD_ASSERT(bl::is_specialized && bl::is_integer && bl::digits == 1, "[test] bool integer flags");
+	CSTD_ASSERT(bl::max() == true && bl::min() == false && !bl::is_modulo, "[test] bool min/max");
+
+	using cl = cstd::numeric_limits<char>;
+	CSTD_ASSERT(cl::is_specialized && cl::is_integer, "[test] char specialized");
+	CSTD_ASSERT(cl::digits == (cl::is_signed ? 7 : 8), "[test] char digits track signedness");
+	CSTD_ASSERT(cl::max() > 0 && (cl::is_signed ? cl::min() < 0 : cl::min() == 0), "[test] char min/max track signedness");
+
+	using u16 = cstd::numeric_limits<char16_t>;
+	CSTD_ASSERT(!u16::is_signed && u16::digits == 16 && u16::max() == 65535, "[test] char16_t limits");
+
+	struct opaque { };
+	CSTD_ASSERT(!cstd::numeric_limits<opaque>::is_specialized && !cstd::numeric_limits<opaque>::is_integer, "[test] primary template unspecialized");
+}
+
+static void test_type_traits()
+{
+	enum unscoped_enum { enum_value };
+	enum class scoped_enum { value };
+	struct plain { cstd::int32_t x; };
+	struct empty_type { };
+	struct polymorphic_type { virtual ~polymorphic_type() = default; };
+	struct abstract_type { virtual void f() = 0; };
+	struct final_type final { };
+	union simple_union { cstd::int32_t a; cstd::int64_t b; };
+
+	static_assert(cstd::is_integral_v<int> && cstd::is_integral_v<const volatile int>, "is_integral strips cv");
+	static_assert(!cstd::is_integral_v<plain> && !cstd::is_integral_v<int*>, "is_integral negative");
+	static_assert(cstd::is_floating_point_v<double> && cstd::is_floating_point_v<const float> && !cstd::is_floating_point_v<int>, "is_floating_point");
+	static_assert(cstd::is_arithmetic_v<int> && cstd::is_arithmetic_v<char> && !cstd::is_arithmetic_v<int*>, "is_arithmetic");
+	static_assert(cstd::is_array_v<int[4]> && cstd::is_array_v<int[]> && !cstd::is_array_v<int>, "is_array");
+	static_assert(cstd::is_enum_v<unscoped_enum> && cstd::is_enum_v<scoped_enum> && !cstd::is_enum_v<int>, "is_enum");
+	static_assert(cstd::is_class_v<plain> && !cstd::is_class_v<simple_union> && !cstd::is_class_v<int>, "is_class");
+	static_assert(cstd::is_union_v<simple_union> && !cstd::is_union_v<plain>, "is_union");
+	static_assert(cstd::is_function_v<void(int)> && !cstd::is_function_v<int> && !cstd::is_function_v<void(*)(int)>, "is_function");
+	static_assert(cstd::is_null_pointer_v<decltype(nullptr)> && !cstd::is_null_pointer_v<int*>, "is_null_pointer");
+
+	static_assert(cstd::is_member_pointer_v<cstd::int32_t plain::*>, "is_member_pointer");
+	static_assert(cstd::is_member_object_pointer_v<cstd::int32_t plain::*> && !cstd::is_member_function_pointer_v<cstd::int32_t plain::*>, "is_member_object_pointer");
+
+	static_assert(cstd::is_fundamental_v<int> && cstd::is_fundamental_v<void> && !cstd::is_fundamental_v<plain>, "is_fundamental");
+	static_assert(cstd::is_scalar_v<int> && cstd::is_scalar_v<int*> && cstd::is_scalar_v<unscoped_enum> && !cstd::is_scalar_v<plain>, "is_scalar");
+	static_assert(cstd::is_object_v<plain> && cstd::is_object_v<int> && !cstd::is_object_v<int&> && !cstd::is_object_v<void>, "is_object");
+	static_assert(cstd::is_compound_v<plain> && cstd::is_compound_v<int*> && !cstd::is_compound_v<int>, "is_compound");
+
+	static_assert(cstd::is_const_v<const int> && !cstd::is_const_v<int>, "is_const");
+	static_assert(cstd::is_volatile_v<volatile int> && !cstd::is_volatile_v<int>, "is_volatile");
+	static_assert(cstd::is_signed_v<int> && !cstd::is_signed_v<unsigned int> && !cstd::is_signed_v<bool>, "is_signed");
+	static_assert(cstd::is_unsigned_v<unsigned int> && cstd::is_unsigned_v<bool> && !cstd::is_unsigned_v<int>, "is_unsigned");
+	static_assert(cstd::is_empty_v<empty_type> && !cstd::is_empty_v<plain>, "is_empty");
+	static_assert(cstd::is_polymorphic_v<polymorphic_type> && !cstd::is_polymorphic_v<plain> && cstd::has_virtual_destructor_v<polymorphic_type>, "is_polymorphic/has_virtual_destructor");
+	static_assert(cstd::is_abstract_v<abstract_type> && !cstd::is_abstract_v<plain>, "is_abstract");
+	static_assert(cstd::is_final_v<final_type> && !cstd::is_final_v<plain> && cstd::is_aggregate_v<plain>, "is_final/is_aggregate");
+	static_assert(cstd::is_standard_layout_v<plain> && cstd::is_trivial_v<plain>, "is_standard_layout/is_trivial");
+	static_assert(cstd::is_destructible_v<plain> && cstd::is_destructible_v<int>, "is_destructible");
 }
 
 static void test_vector_emplace_erase()
@@ -246,6 +388,32 @@ static void test_vector_assign_insert()
 	CSTD_ASSERT(x == y, "[test] vector equality");
 	y.push_back(5);
 	CSTD_ASSERT(x < y && y > x, "[test] vector less by length");
+}
+
+static void test_vector_capacity_swap()
+{
+	cstd::vector<cstd::int32_t> v;
+	v.reserve(10);
+	CSTD_ASSERT(v.capacity() == 10 && v.capacity() == v.max_size(), "[test] vector capacity()");
+
+	v.resize(3, 5);
+	CSTD_ASSERT(v.size() == 3 && v[0] == 5 && v[2] == 5, "[test] vector resize(n, value) fill");
+	v.resize(5, 9);
+	CSTD_ASSERT(v.size() == 5 && v[2] == 5 && v[3] == 9 && v[4] == 9, "[test] vector resize grow keeps prefix");
+	v.resize(1, 0);
+	CSTD_ASSERT(v.size() == 1 && v[0] == 5, "[test] vector resize shrink");
+
+	cstd::vector<cstd::int32_t> a;
+	a.push_back(1);
+	a.push_back(2);
+	cstd::vector<cstd::int32_t> b;
+	b.push_back(9);
+
+	a.swap(b);
+	CSTD_ASSERT(a.size() == 1 && a[0] == 9 && b.size() == 2 && b[0] == 1 && b[1] == 2, "[test] vector member swap");
+
+	cstd::swap(a, b);
+	CSTD_ASSERT(a.size() == 2 && a[0] == 1 && b.size() == 1 && b[0] == 9, "[test] vector free swap");
 }
 
 static void test_leaf_types()
@@ -360,6 +528,47 @@ static void test_string()
 	cstd::string abc("abc");
 	cstd::string abd("abd");
 	CSTD_ASSERT(abc < abd && abd > abc && abc != abd && abc == abc, "[test] string comparisons");
+}
+
+static void test_string_view_search()
+{
+	cstd::string_view text("abracadabra");
+
+	CSTD_ASSERT(text.find(cstd::string_view("cad")) == 4, "[test] string_view find substring");
+	CSTD_ASSERT(text.find("ra") == 2 && text.find("ra", 3) == 9, "[test] string_view find with offset");
+	CSTD_ASSERT(text.find("xyz") == cstd::string_view::npos, "[test] string_view find miss returns npos");
+	CSTD_ASSERT(text.find('a') == 0 && text.find('a', 1) == 3, "[test] string_view find char");
+	CSTD_ASSERT(text.find('z') == cstd::string_view::npos, "[test] string_view find char miss");
+
+	CSTD_ASSERT(text.rfind("abra") == 7 && text.rfind("abra", 6) == 0, "[test] string_view rfind substring");
+	CSTD_ASSERT(text.rfind('a') == 10 && text.rfind('b', 5) == 1, "[test] string_view rfind char");
+
+	CSTD_ASSERT(text.find_first_of("cd") == 4 && text.find_last_of("cd") == 6, "[test] string_view find_first/last_of");
+	CSTD_ASSERT(text.find_first_of("xyz") == cstd::string_view::npos, "[test] string_view find_first_of miss");
+	CSTD_ASSERT(text.find_first_not_of("abr") == 4 && text.find_last_not_of("abr") == 6, "[test] string_view find_first/last_not_of");
+	CSTD_ASSERT(cstd::string_view("aaa").find_first_not_of('a') == cstd::string_view::npos, "[test] string_view find_first_not_of char all-match");
+
+	CSTD_ASSERT(text.contains(cstd::string_view("cada")) && text.contains('d'), "[test] string_view contains");
+	CSTD_ASSERT(!text.contains("xyz") && !text.contains('z'), "[test] string_view contains miss");
+
+	cstd::string_view prefix = text.substr(0, 5);
+	CSTD_ASSERT(prefix.find('c') == 4, "[test] string_view find within bounded view");
+	CSTD_ASSERT(prefix.find("ad") == cstd::string_view::npos, "[test] string_view find does not read past bounded view");
+	CSTD_ASSERT(prefix.find_first_of("dz") == cstd::string_view::npos, "[test] string_view find_first_of respects view bound");
+}
+
+static void test_string_search()
+{
+	cstd::string text("abracadabra");
+
+	CSTD_ASSERT(text.find(cstd::string_view("cad")) == 4 && text.find("dab") == 6, "[test] string find substring");
+	CSTD_ASSERT(text.find('d') == 6 && text.find("zzz") == cstd::string::npos, "[test] string find char/miss");
+	CSTD_ASSERT(text.rfind("abra") == 7 && text.rfind('a') == 10, "[test] string rfind");
+	CSTD_ASSERT(text.find_first_of("rc") == 2 && text.find_last_of("rc") == 9, "[test] string find_first/last_of");
+	CSTD_ASSERT(text.find_first_not_of("abr") == 4 && text.find_last_not_of("abr") == 6, "[test] string find_first/last_not_of");
+	CSTD_ASSERT(text.contains("cada") && text.contains('c'), "[test] string contains");
+	CSTD_ASSERT(!text.contains("qqq") && !text.contains('q'), "[test] string contains miss");
+	CSTD_ASSERT(text.front() == 'a' && text.back() == 'a' && text.at(4) == 'c', "[test] string front/back/at");
 }
 
 static void test_optional()
@@ -546,6 +755,59 @@ static void test_ranges()
 	CSTD_ASSERT(cstd::ranges::equal(range, twin_range), "[test] ranges::equal");
 }
 
+static void test_ranges_extra()
+{
+	cstd::array<cstd::int32_t, 5> data{ 1, 2, 3, 4, 5 };
+	cstd::span<cstd::int32_t> range(data);
+
+	cstd::int32_t destination[5] = {};
+	cstd::int32_t* copy_end = cstd::ranges::copy(range, destination);
+	CSTD_ASSERT(copy_end == destination + 5 && destination[0] == 1 && destination[4] == 5, "[test] ranges::copy");
+
+	cstd::int32_t squares[5] = {};
+	cstd::ranges::transform(range, squares, [](cstd::int32_t x) { return x * x; });
+	CSTD_ASSERT(squares[1] == 4 && squares[4] == 25, "[test] ranges::transform unary");
+
+	cstd::array<cstd::int32_t, 5> other{ 10, 20, 30, 40, 50 };
+	cstd::span<cstd::int32_t> other_range(other);
+	cstd::int32_t sums[5] = {};
+	cstd::ranges::transform(range, other_range, sums, [](cstd::int32_t a, cstd::int32_t b) { return a + b; });
+	CSTD_ASSERT(sums[0] == 11 && sums[4] == 55, "[test] ranges::transform binary");
+
+	auto same_parity = [](cstd::int32_t a, cstd::int32_t b) { return (a % 2) == (b % 2); };
+	cstd::array<cstd::int32_t, 5> parity{ 3, 4, 5, 6, 7 };
+	cstd::span<cstd::int32_t> parity_range(parity);
+	CSTD_ASSERT(cstd::ranges::equal(range, parity_range, same_parity), "[test] ranges::equal with predicate");
+
+	cstd::int32_t evens[3] = {};
+	cstd::int32_t* copy_if_end = cstd::ranges::copy_if(range, evens, [](cstd::int32_t x) { return x % 2 == 0; });
+	CSTD_ASSERT(copy_if_end == evens + 2 && evens[0] == 2 && evens[1] == 4, "[test] ranges::copy_if");
+
+	cstd::array<cstd::int32_t, 4> targets{ 9, 8, 3, 7 };
+	cstd::span<cstd::int32_t> targets_range(targets);
+	CSTD_ASSERT(cstd::ranges::find_first_of(range, targets_range) == range.begin() + 2, "[test] ranges::find_first_of");
+
+	cstd::array<cstd::int32_t, 6> dups{ 1, 1, 2, 2, 3, 3 };
+	cstd::span<cstd::int32_t> dups_range(dups);
+	CSTD_ASSERT(cstd::ranges::adjacent_find(dups_range) == dups_range.begin(), "[test] ranges::adjacent_find");
+	cstd::int32_t* unique_end = cstd::ranges::unique(dups_range);
+	CSTD_ASSERT(unique_end == dups_range.begin() + 3 && dups[0] == 1 && dups[1] == 2 && dups[2] == 3, "[test] ranges::unique");
+
+	cstd::array<cstd::int32_t, 5> rep{ 1, 2, 1, 2, 1 };
+	cstd::span<cstd::int32_t> rep_range(rep);
+	cstd::ranges::replace(rep_range, 1, 9);
+	CSTD_ASSERT(rep[0] == 9 && rep[2] == 9 && rep[1] == 2, "[test] ranges::replace");
+	cstd::ranges::replace_if(rep_range, [](cstd::int32_t x) { return x == 2; }, 0);
+	CSTD_ASSERT(rep[1] == 0 && rep[3] == 0, "[test] ranges::replace_if");
+
+	cstd::array<cstd::int32_t, 5> sorted{ 1, 2, 3, 4, 5 };
+	cstd::span<cstd::int32_t> sorted_range(sorted);
+	CSTD_ASSERT(cstd::ranges::lower_bound(sorted_range, 3, cstd::less{}) == sorted_range.begin() + 2, "[test] ranges::lower_bound with compare");
+	CSTD_ASSERT(cstd::ranges::upper_bound(sorted_range, 3, cstd::less{}) == sorted_range.begin() + 3, "[test] ranges::upper_bound with compare");
+	CSTD_ASSERT(cstd::ranges::binary_search(sorted_range, 4, cstd::less{}) && cstd::ranges::is_sorted(sorted_range, cstd::less{}),
+		"[test] ranges::binary_search/is_sorted with compare");
+}
+
 static void test_algorithm_modifying()
 {
 	cstd::int32_t src[] = { 1, 2, 3, 4 };
@@ -658,6 +920,185 @@ static void test_algorithm_sorted()
 	cstd::ranges::sort(ra_span);
 	CSTD_ASSERT(cstd::ranges::is_sorted(ra_span) && cstd::ranges::binary_search(ra_span, 3)
 		&& !cstd::ranges::binary_search(ra_span, 9), "[test] ranges sort + binary_search");
+}
+
+static void test_algorithm_extra()
+{
+	cstd::int32_t values[] = { 1, 2, 3, 4, 5, 6 };
+	cstd::int32_t* const first = values;
+	cstd::int32_t* const last = values + 6;
+
+	cstd::int32_t targets[] = { 9, 4, 7 };
+	CSTD_ASSERT(cstd::find_first_of(first, last, targets, targets + 3) == values + 3, "[test] find_first_of");
+	cstd::int32_t no_targets[] = { 99, 98 };
+	CSTD_ASSERT(cstd::find_first_of(first, last, no_targets, no_targets + 2) == last, "[test] find_first_of miss returns last");
+
+	cstd::int32_t dups[] = { 1, 2, 2, 3, 3, 3 };
+	CSTD_ASSERT(cstd::adjacent_find(dups, dups + 6) == dups + 1, "[test] adjacent_find");
+	CSTD_ASSERT(cstd::adjacent_find(first, last) == last, "[test] adjacent_find none returns last");
+
+	cstd::int32_t to_replace[] = { 1, 2, 1, 3, 1 };
+	cstd::replace(to_replace, to_replace + 5, 1, 0);
+	CSTD_ASSERT(to_replace[0] == 0 && to_replace[2] == 0 && to_replace[4] == 0 && to_replace[1] == 2, "[test] replace");
+	cstd::replace_if(to_replace, to_replace + 5, [](cstd::int32_t x) { return x > 1; }, 7);
+	CSTD_ASSERT(to_replace[1] == 7 && to_replace[3] == 7 && to_replace[0] == 0, "[test] replace_if");
+
+	cstd::int32_t evens[3] = {};
+	cstd::int32_t* copy_end = cstd::copy_if(values, last, evens, [](cstd::int32_t x) { return x % 2 == 0; });
+	CSTD_ASSERT(copy_end == evens + 3 && evens[0] == 2 && evens[1] == 4 && evens[2] == 6, "[test] copy_if");
+
+	cstd::int32_t filled[4] = {};
+	cstd::int32_t* fill_end = cstd::fill_n(filled, 3, 5);
+	CSTD_ASSERT(fill_end == filled + 3 && filled[0] == 5 && filled[2] == 5 && filled[3] == 0, "[test] fill_n");
+
+	cstd::int32_t unique_src[] = { 1, 1, 2, 3, 3, 3, 4 };
+	cstd::int32_t* unique_end = cstd::unique(unique_src, unique_src + 7);
+	CSTD_ASSERT(unique_end == unique_src + 4 && unique_src[0] == 1 && unique_src[1] == 2 && unique_src[2] == 3 && unique_src[3] == 4,
+		"[test] unique collapses consecutive runs");
+}
+
+static void test_algorithm_iterators()
+{
+	cstd::single_linked_list<cstd::int32_t> slist;
+	slist.push_back(1);
+	slist.push_back(2);
+	slist.push_back(3);
+	slist.push_back(4);
+	slist.push_back(5);
+
+	CSTD_ASSERT(cstd::any_of(slist, [](cstd::int32_t x) { return x == 3; }),
+		"[test] any_of with range");
+	CSTD_ASSERT(!cstd::any_of(slist, [](cstd::int32_t x) { return x == 9; }),
+		"[test] any_of miss with range");
+	CSTD_ASSERT(cstd::all_of(slist, [](cstd::int32_t x) { return x > 0; }),
+		"[test] all_of with range");
+	CSTD_ASSERT(cstd::none_of(slist, [](cstd::int32_t x) { return x > 10; }),
+		"[test] none_of with range");
+
+	auto it = cstd::find(slist, 4);
+	CSTD_ASSERT(it != slist.end() && *it == 4, "[test] find with range");
+	CSTD_ASSERT(cstd::find(slist, 99) == slist.end(), "[test] find miss with range");
+
+	auto pred_it = cstd::find_if(slist, [](cstd::int32_t x) { return x > 3; });
+	CSTD_ASSERT(pred_it != slist.end() && *pred_it == 4, "[test] find_if with range");
+
+	CSTD_ASSERT(cstd::count(slist, 3) == 1, "[test] count with range");
+	CSTD_ASSERT(cstd::count_if(slist, [](cstd::int32_t x) { return x % 2 == 0; }) == 2,
+		"[test] count_if with range");
+
+	cstd::int32_t sum = 0;
+	cstd::for_each(slist, [&sum](cstd::int32_t x) { sum += x; });
+	CSTD_ASSERT(sum == 15, "[test] for_each with range");
+
+	cstd::double_linked_list<cstd::int32_t> dlist;
+	dlist.push_back(5);
+	dlist.push_back(4);
+	dlist.push_back(3);
+	dlist.push_back(2);
+	dlist.push_back(1);
+
+	CSTD_ASSERT(cstd::equal(slist, dlist) == false, "[test] equal with range");
+
+	cstd::reverse(dlist);
+
+	CSTD_ASSERT(cstd::equal(slist, dlist), "[test] equal after reverse with range");
+
+	auto adj = cstd::adjacent_find(slist);
+	CSTD_ASSERT(adj == slist.end(), "[test] adjacent_find no dups with range");
+
+	auto min_it = cstd::min_element(slist);
+	CSTD_ASSERT(*min_it == 1, "[test] min_element with range");
+	auto max_it = cstd::max_element(slist);
+	CSTD_ASSERT(*max_it == 5, "[test] max_element with range");
+
+	cstd::vector<cstd::int32_t> vec;
+	vec.push_back(5);
+	vec.push_back(3);
+	vec.push_back(1);
+	vec.push_back(4);
+	vec.push_back(2);
+
+	cstd::sort(vec);
+	CSTD_ASSERT(cstd::is_sorted(vec), "[test] sort + is_sorted with range");
+	CSTD_ASSERT(*cstd::lower_bound(vec, 3) == 3, "[test] lower_bound with range");
+	CSTD_ASSERT(cstd::binary_search(vec, 4), "[test] binary_search with range");
+	CSTD_ASSERT(!cstd::binary_search(vec, 9), "[test] binary_search miss with range");
+}
+
+static void test_algorithm_projected()
+{
+	struct entry
+	{
+		cstd::int32_t id;
+		cstd::int32_t score;
+	};
+
+	cstd::vector<entry> entries;
+	entries.push_back(entry{ 1, 80 });
+	entries.push_back(entry{ 2, 95 });
+	entries.push_back(entry{ 3, 60 });
+	entries.push_back(entry{ 4, 100 });
+	entries.push_back(entry{ 5, 70 });
+
+	auto it = cstd::find(entries, 3, &entry::id);
+	CSTD_ASSERT(it != entries.end() && it->score == 60, "[test] find with projection");
+	CSTD_ASSERT(cstd::find(entries, 99, &entry::id) == entries.end(),
+		"[test] find miss with projection");
+
+	auto high = cstd::find_if(entries, [](cstd::int32_t s) { return s >= 100; }, &entry::score);
+	CSTD_ASSERT(high != entries.end() && high->id == 4, "[test] find_if with projection");
+
+	CSTD_ASSERT(cstd::any_of(entries, [](cstd::int32_t s) { return s > 90; }, &entry::score),
+		"[test] any_of with projection");
+	CSTD_ASSERT(!cstd::any_of(entries, [](cstd::int32_t s) { return s > 200; }, &entry::score),
+		"[test] any_of miss with projection");
+
+	CSTD_ASSERT(cstd::all_of(entries, [](cstd::int32_t s) { return s > 0; }, &entry::score),
+		"[test] all_of with projection");
+	CSTD_ASSERT(cstd::none_of(entries, [](cstd::int32_t s) { return s < 0; }, &entry::score),
+		"[test] none_of with projection");
+
+	CSTD_ASSERT(cstd::count(entries, 80, &entry::score) == 1, "[test] count with projection");
+	CSTD_ASSERT(cstd::count_if(entries, [](cstd::int32_t s) { return s >= 80; }, &entry::score) == 3,
+		"[test] count_if with projection");
+
+	cstd::int32_t id_sum = 0;
+	cstd::for_each(entries, [&id_sum](cstd::int32_t id) { id_sum += id; }, &entry::id);
+	CSTD_ASSERT(id_sum == 15, "[test] for_each with projection");
+
+	auto it2 = cstd::find(entries.begin(), entries.end(), 95, &entry::score);
+	CSTD_ASSERT(it2 != entries.end() && it2->id == 2, "[test] find with projection (iterator-pair)");
+
+	CSTD_ASSERT(cstd::contains(entries, 3, &entry::id), "[test] contains with projection");
+	CSTD_ASSERT(!cstd::contains(entries, 99, &entry::id), "[test] contains miss with projection");
+
+	cstd::vector<cstd::int32_t> nums;
+	nums.push_back(10);
+	nums.push_back(20);
+	nums.push_back(30);
+	CSTD_ASSERT(cstd::contains(nums, 20), "[test] contains with range");
+	CSTD_ASSERT(!cstd::contains(nums, 99), "[test] contains miss with range");
+	CSTD_ASSERT(cstd::contains(nums.begin(), nums.end(), 30), "[test] contains with iterators");
+
+	struct thing
+	{
+		cstd::int32_t id;
+	};
+
+	cstd::vector<cstd::shared_ptr<thing>> ptrs;
+	ptrs.push_back(cstd::make_shared<thing>(thing{ 1 }));
+	ptrs.push_back(cstd::make_shared<thing>(thing{ 2 }));
+	ptrs.push_back(cstd::make_shared<thing>(thing{ 3 }));
+
+	CSTD_ASSERT(cstd::contains(ptrs, 2, &thing::id), "[test] contains through shared_ptr");
+	CSTD_ASSERT(!cstd::contains(ptrs, 9, &thing::id), "[test] contains miss through shared_ptr");
+
+	auto found = cstd::find(ptrs, 3, &thing::id);
+	CSTD_ASSERT(found != ptrs.end() && (*found)->id == 3, "[test] find through shared_ptr");
+
+	CSTD_ASSERT(cstd::any_of(ptrs, [](cstd::int32_t id) { return id > 2; }, &thing::id),
+		"[test] any_of through shared_ptr");
+	CSTD_ASSERT(cstd::count(ptrs, 1, &thing::id) == 1, "[test] count through shared_ptr");
 }
 
 static void test_flat_map()
@@ -1155,6 +1596,737 @@ static void test_double_linked_list_lifetime()
 	}
 }
 
+static void test_pointer_comparisons()
+{
+	cstd::unique_ptr<cstd::int32_t> u1 = cstd::make_unique<cstd::int32_t>(1);
+	cstd::unique_ptr<cstd::int32_t> u2 = cstd::make_unique<cstd::int32_t>(2);
+	cstd::unique_ptr<cstd::int32_t> u_null;
+
+	CSTD_ASSERT(u1 == u1 && u1 != u2, "[unique_ptr] self-equality and inequality");
+	CSTD_ASSERT(u_null == nullptr && nullptr == u_null, "[unique_ptr] null == nullptr");
+	CSTD_ASSERT(u1 != nullptr && nullptr != u1, "[unique_ptr] non-null != nullptr");
+	CSTD_ASSERT((u1 < u2) == (u1.get() < u2.get()), "[unique_ptr] ordering matches raw pointer");
+	CSTD_ASSERT((u1 <= u1) && (u1 >= u1), "[unique_ptr] reflexive <= and >=");
+
+	cstd::shared_ptr<cstd::int32_t> s1 = cstd::make_shared<cstd::int32_t>(10);
+	cstd::shared_ptr<cstd::int32_t> s2 = cstd::make_shared<cstd::int32_t>(20);
+	cstd::shared_ptr<cstd::int32_t> s_copy = s1;
+	cstd::shared_ptr<cstd::int32_t> s_null;
+
+	CSTD_ASSERT(s1 == s_copy && s1 != s2, "[shared_ptr] equality with alias");
+	CSTD_ASSERT(s_null == nullptr && nullptr == s_null, "[shared_ptr] null == nullptr");
+	CSTD_ASSERT(s1 != nullptr && nullptr != s1, "[shared_ptr] non-null != nullptr");
+	CSTD_ASSERT((s1 < s2) == (s1.get() < s2.get()), "[shared_ptr] ordering matches raw pointer");
+	CSTD_ASSERT((s1 <= s1) && (s1 >= s1), "[shared_ptr] reflexive <= and >=");
+}
+
+static void test_optional_comparisons()
+{
+	cstd::optional<cstd::int32_t> a(3);
+	cstd::optional<cstd::int32_t> b(5);
+	cstd::optional<cstd::int32_t> a2(3);
+	cstd::optional<cstd::int32_t> empty;
+	cstd::optional<cstd::int32_t> empty2;
+
+	CSTD_ASSERT(a == a2 && a != b, "[optional] value equality/inequality");
+	CSTD_ASSERT(a < b && b > a && a <= b && b >= a, "[optional] value ordering");
+	CSTD_ASSERT(a <= a2 && a >= a2, "[optional] equal values have <= and >=");
+	CSTD_ASSERT(empty == empty2, "[optional] two empties are equal");
+	CSTD_ASSERT(empty < a && a > empty, "[optional] empty < engaged");
+	CSTD_ASSERT(!(empty > a) && !(empty == a), "[optional] empty not > engaged and not ==");
+
+	CSTD_ASSERT(empty == cstd::nullopt && cstd::nullopt == empty, "[optional] empty == nullopt");
+	CSTD_ASSERT(a != cstd::nullopt && cstd::nullopt != a, "[optional] engaged != nullopt");
+
+	CSTD_ASSERT(a == 3 && 3 == a, "[optional] value comparison ==");
+	CSTD_ASSERT(a != 5 && 5 != a, "[optional] value comparison !=");
+	CSTD_ASSERT(!(empty == 3) && 3 != empty, "[optional] empty != any value");
+}
+
+static void test_function_comparisons()
+{
+	cstd::function<cstd::int32_t()> empty;
+	cstd::function<cstd::int32_t()> active = []() { return 1; };
+
+	CSTD_ASSERT(empty == nullptr && nullptr == empty, "[function] empty == nullptr");
+	CSTD_ASSERT(active != nullptr && nullptr != active, "[function] active != nullptr");
+}
+
+static void test_unordered_map()
+{
+	cstd::unordered_map<int, cstd::string> map;
+
+	CSTD_ASSERT(map.empty(), "[unordered_map] default not empty");
+	CSTD_ASSERT(map.size() == 0, "[unordered_map] default size != 0");
+
+	map[1] = "one";
+	map[2] = "two";
+	map[3] = "three";
+
+	CSTD_ASSERT(map.size() == 3, "[unordered_map] size after insert");
+	CSTD_ASSERT(!map.empty(), "[unordered_map] not empty after insert");
+
+	CSTD_ASSERT(map[1] == "one", "[unordered_map] operator[] read 1");
+	CSTD_ASSERT(map[2] == "two", "[unordered_map] operator[] read 2");
+	CSTD_ASSERT(map[3] == "three", "[unordered_map] operator[] read 3");
+
+	auto found = map.find(2);
+	CSTD_ASSERT(found != nullptr, "[unordered_map] find existing");
+	CSTD_ASSERT(found->first == 2, "[unordered_map] find key");
+	CSTD_ASSERT(found->second == "two", "[unordered_map] find value");
+
+	auto missing = map.find(99);
+	CSTD_ASSERT(missing == nullptr, "[unordered_map] find missing");
+
+	CSTD_ASSERT(map.contains(1), "[unordered_map] contains existing");
+	CSTD_ASSERT(!map.contains(99), "[unordered_map] contains missing");
+	CSTD_ASSERT(map.count(1) == 1, "[unordered_map] count existing");
+	CSTD_ASSERT(map.count(99) == 0, "[unordered_map] count missing");
+
+	CSTD_ASSERT(map.at(3) == "three", "[unordered_map] at() existing");
+
+	map[1] = "ONE";
+	CSTD_ASSERT(map[1] == "ONE", "[unordered_map] overwrite via operator[]");
+	CSTD_ASSERT(map.size() == 3, "[unordered_map] size unchanged after overwrite");
+
+	CSTD_ASSERT(map.erase(2) == 1, "[unordered_map] erase existing");
+	CSTD_ASSERT(map.size() == 2, "[unordered_map] size after erase");
+	CSTD_ASSERT(!map.contains(2), "[unordered_map] erased key gone");
+	CSTD_ASSERT(map.erase(2) == 0, "[unordered_map] erase missing");
+
+	map.clear();
+	CSTD_ASSERT(map.empty(), "[unordered_map] empty after clear");
+	CSTD_ASSERT(map.size() == 0, "[unordered_map] size 0 after clear");
+}
+
+static void test_unordered_map_iteration()
+{
+	cstd::unordered_map<int, int> map;
+
+	auto b = map.begin();
+	auto e = map.end();
+	CSTD_ASSERT(b == e, "[unordered_map] empty begin == end");
+
+	map[10] = 100;
+	map[20] = 200;
+	map[30] = 300;
+
+	cstd::size_t count = 0;
+	int key_sum = 0;
+	int val_sum = 0;
+
+	for (auto it = map.begin(); it != map.end(); ++it)
+	{
+		key_sum += it->first;
+		val_sum += it->second;
+		++count;
+	}
+
+	CSTD_ASSERT(count == 3, "[unordered_map] iteration count");
+	CSTD_ASSERT(key_sum == 60, "[unordered_map] iteration key sum");
+	CSTD_ASSERT(val_sum == 600, "[unordered_map] iteration val sum");
+
+	const auto& cmap = map;
+	cstd::size_t ccount = 0;
+
+	for (auto it = cmap.begin(); it != cmap.end(); ++it)
+	{
+		++ccount;
+	}
+
+	CSTD_ASSERT(ccount == 3, "[unordered_map] const iteration count");
+}
+
+static void test_unordered_map_modifiers()
+{
+	cstd::unordered_map<int, cstd::string> a;
+
+	auto r1 = a.insert(cstd::pair<int, cstd::string>(1, "one"));
+	CSTD_ASSERT(r1.second == true, "[unordered_map] insert new");
+	CSTD_ASSERT(r1.first->second == "one", "[unordered_map] insert value");
+
+	auto r2 = a.insert(cstd::pair<int, cstd::string>(1, "ONE"));
+	CSTD_ASSERT(r2.second == false, "[unordered_map] insert duplicate");
+	CSTD_ASSERT(r2.first->second == "one", "[unordered_map] insert kept original");
+
+	auto r3 = a.insert(2, "two");
+	CSTD_ASSERT(r3.second == true, "[unordered_map] insert(k,v) new");
+
+	auto r4 = a.emplace(3, "three");
+	CSTD_ASSERT(r4.second == true, "[unordered_map] emplace new");
+	CSTD_ASSERT(a[3] == "three", "[unordered_map] emplace value");
+
+	auto r5 = a.emplace(3, "THREE");
+	CSTD_ASSERT(r5.second == false, "[unordered_map] emplace duplicate");
+
+	cstd::unordered_map<int, cstd::string> b;
+	b[10] = "ten";
+	b[20] = "twenty";
+
+	a.swap(b);
+	CSTD_ASSERT(a.size() == 2, "[unordered_map] swap a size");
+	CSTD_ASSERT(b.size() == 3, "[unordered_map] swap b size");
+	CSTD_ASSERT(a.contains(10), "[unordered_map] swap a has 10");
+	CSTD_ASSERT(b.contains(1), "[unordered_map] swap b has 1");
+
+	cstd::unordered_map<int, cstd::string> copy(b);
+	CSTD_ASSERT(copy.size() == b.size(), "[unordered_map] copy size");
+	CSTD_ASSERT(copy[1] == "one", "[unordered_map] copy value");
+
+	cstd::unordered_map<int, cstd::string> moved(cstd::move(copy));
+	CSTD_ASSERT(moved.size() == 3, "[unordered_map] move ctor size");
+	CSTD_ASSERT(copy.empty(), "[unordered_map] move ctor source empty");
+
+	cstd::unordered_map<int, int> eq1;
+	cstd::unordered_map<int, int> eq2;
+	eq1[1] = 10;
+	eq1[2] = 20;
+	eq2[2] = 20;
+	eq2[1] = 10;
+	CSTD_ASSERT(eq1 == eq2, "[unordered_map] equality");
+	eq2[3] = 30;
+	CSTD_ASSERT(eq1 != eq2, "[unordered_map] inequality size");
+}
+
+static void test_unordered_map_rehash()
+{
+	cstd::unordered_map<int, int> map(4);
+	CSTD_ASSERT(map.bucket_count() == 4, "[unordered_map] custom bucket count");
+
+	for (int i = 0; i < 20; ++i)
+	{
+		map[i] = i * 10;
+	}
+
+	CSTD_ASSERT(map.size() == 20, "[unordered_map] size after many inserts");
+	CSTD_ASSERT(map.bucket_count() > 4, "[unordered_map] rehashed");
+
+	for (int i = 0; i < 20; ++i)
+	{
+		CSTD_ASSERT(map[i] == i * 10, "[unordered_map] values survived rehash");
+	}
+
+	cstd::size_t bc = map.bucket_count();
+	map.rehash(bc * 2);
+	CSTD_ASSERT(map.bucket_count() >= bc * 2, "[unordered_map] manual rehash");
+	CSTD_ASSERT(map.size() == 20, "[unordered_map] size after manual rehash");
+
+	for (int i = 0; i < 20; ++i)
+	{
+		CSTD_ASSERT(map.contains(i), "[unordered_map] contains after rehash");
+	}
+
+	map.reserve(100);
+	CSTD_ASSERT(map.bucket_count() >= 100, "[unordered_map] reserve");
+
+	CSTD_ASSERT(map.max_load_factor() == 1, "[unordered_map] default mlf");
+	map.max_load_factor(2);
+	CSTD_ASSERT(map.max_load_factor() == 2, "[unordered_map] set mlf");
+}
+
+static void test_ring_buffer()
+{
+	cstd::ring_buffer<cstd::int32_t> rb(3);
+	CSTD_ASSERT(rb.empty(), "[ring_buffer] should be empty after construction");
+	CSTD_ASSERT(rb.capacity() == 3, "[ring_buffer] capacity mismatch");
+	CSTD_ASSERT(rb.size() == 0, "[ring_buffer] size should be 0");
+
+	rb.push_back(1);
+	rb.push_back(2);
+	rb.push_back(3);
+	CSTD_ASSERT(rb.full(), "[ring_buffer] should be full");
+	CSTD_ASSERT(rb.front() == 1, "[ring_buffer] front mismatch");
+	CSTD_ASSERT(rb.back() == 3, "[ring_buffer] back mismatch");
+	CSTD_ASSERT(rb[0] == 1 && rb[1] == 2 && rb[2] == 3, "[ring_buffer] indexed access");
+
+	rb.push_back(4);
+	CSTD_ASSERT(rb.size() == 3, "[ring_buffer] size stays at capacity after overwrite");
+	CSTD_ASSERT(rb.front() == 2, "[ring_buffer] oldest dropped on overwrite");
+	CSTD_ASSERT(rb.back() == 4, "[ring_buffer] newest is 4");
+	CSTD_ASSERT(rb[0] == 2 && rb[1] == 3 && rb[2] == 4, "[ring_buffer] logical order after wrap");
+
+	rb.push_back(5);
+	rb.push_back(6);
+	CSTD_ASSERT(rb[0] == 4 && rb[1] == 5 && rb[2] == 6, "[ring_buffer] multiple overwrites");
+
+	rb.pop_front();
+	CSTD_ASSERT(rb.size() == 2, "[ring_buffer] size after pop_front");
+	CSTD_ASSERT(rb.front() == 5, "[ring_buffer] front after pop_front");
+
+	rb.pop_back();
+	CSTD_ASSERT(rb.size() == 1, "[ring_buffer] size after pop_back");
+	CSTD_ASSERT(rb.front() == 5 && rb.back() == 5, "[ring_buffer] single element");
+
+	rb.clear();
+	CSTD_ASSERT(rb.empty(), "[ring_buffer] empty after clear");
+	CSTD_ASSERT(rb.capacity() == 3, "[ring_buffer] capacity unchanged after clear");
+}
+
+static void test_ring_buffer_push_front()
+{
+	cstd::ring_buffer<cstd::int32_t> rb(3);
+	rb.push_front(10);
+	rb.push_front(20);
+	rb.push_front(30);
+	CSTD_ASSERT(rb.front() == 30, "[ring_buffer] front after push_fronts");
+	CSTD_ASSERT(rb.back() == 10, "[ring_buffer] back after push_fronts");
+	CSTD_ASSERT(rb[0] == 30 && rb[1] == 20 && rb[2] == 10, "[ring_buffer] push_front order");
+
+	rb.push_front(40);
+	CSTD_ASSERT(rb.size() == 3, "[ring_buffer] size after overwriting push_front");
+	CSTD_ASSERT(rb.front() == 40, "[ring_buffer] front after overwrite push_front");
+	CSTD_ASSERT(rb.back() == 20, "[ring_buffer] back dropped by push_front");
+	CSTD_ASSERT(rb[0] == 40 && rb[1] == 30 && rb[2] == 20, "[ring_buffer] push_front overwrite order");
+}
+
+static void test_ring_buffer_iteration()
+{
+	cstd::ring_buffer<cstd::int32_t> rb(4);
+	rb.push_back(10);
+	rb.push_back(20);
+	rb.push_back(30);
+
+	cstd::int32_t sum = 0;
+	for (auto it = rb.begin(); it != rb.end(); ++it)
+	{
+		sum += *it;
+	}
+	CSTD_ASSERT(sum == 60, "[ring_buffer] iterator sum");
+
+	sum = 0;
+	for (const auto& val : rb)
+	{
+		sum += val;
+	}
+	CSTD_ASSERT(sum == 60, "[ring_buffer] range-for sum");
+
+	rb.push_back(40);
+	rb.push_back(50);
+
+	sum = 0;
+	for (const auto& val : rb)
+	{
+		sum += val;
+	}
+	CSTD_ASSERT(sum == 140, "[ring_buffer] wrapped iteration sum");
+	CSTD_ASSERT(rb[0] == 20 && rb[1] == 30 && rb[2] == 40 && rb[3] == 50,
+		"[ring_buffer] wrapped logical order");
+
+	cstd::ring_buffer<cstd::int32_t> empty_rb(2);
+	cstd::int32_t count = 0;
+	for ([[maybe_unused]] const auto& val : empty_rb)
+	{
+		++count;
+	}
+	CSTD_ASSERT(count == 0, "[ring_buffer] empty iteration");
+}
+
+static void test_ring_buffer_copy_move()
+{
+	cstd::ring_buffer<cstd::int32_t> rb(3);
+	rb.push_back(1);
+	rb.push_back(2);
+	rb.push_back(3);
+	rb.push_back(4);
+
+	cstd::ring_buffer<cstd::int32_t> copy(rb);
+	CSTD_ASSERT(copy.size() == 3, "[ring_buffer] copy size");
+	CSTD_ASSERT(copy.capacity() == 3, "[ring_buffer] copy capacity");
+	CSTD_ASSERT(copy[0] == 2 && copy[1] == 3 && copy[2] == 4, "[ring_buffer] copy values");
+	CSTD_ASSERT(copy == rb, "[ring_buffer] copy equality");
+
+	cstd::ring_buffer<cstd::int32_t> moved(cstd::move(copy));
+	CSTD_ASSERT(moved.size() == 3, "[ring_buffer] moved size");
+	CSTD_ASSERT(moved[0] == 2 && moved[1] == 3 && moved[2] == 4, "[ring_buffer] moved values");
+	CSTD_ASSERT(copy.empty() && copy.capacity() == 0, "[ring_buffer] source empty after move");
+
+	cstd::ring_buffer<cstd::int32_t> assigned(5);
+	assigned = rb;
+	CSTD_ASSERT(assigned == rb, "[ring_buffer] copy assignment");
+	CSTD_ASSERT(assigned.capacity() == 3, "[ring_buffer] copy assignment capacity");
+
+	cstd::ring_buffer<cstd::int32_t> move_assigned(5);
+	move_assigned = cstd::move(assigned);
+	CSTD_ASSERT(move_assigned.size() == 3, "[ring_buffer] move assignment size");
+	CSTD_ASSERT(assigned.empty(), "[ring_buffer] source empty after move assignment");
+
+	cstd::ring_buffer<cstd::int32_t> a(2), b(3);
+	a.push_back(1);
+	b.push_back(2);
+	b.push_back(3);
+
+	a.swap(b);
+	CSTD_ASSERT(a.size() == 2 && a.capacity() == 3, "[ring_buffer] swap a");
+	CSTD_ASSERT(b.size() == 1 && b.capacity() == 2, "[ring_buffer] swap b");
+	CSTD_ASSERT(a[0] == 2 && a[1] == 3, "[ring_buffer] swap a values");
+	CSTD_ASSERT(b[0] == 1, "[ring_buffer] swap b values");
+}
+
+static void test_ring_buffer_emplace()
+{
+	cstd::ring_buffer<cstd::int32_t> rb(2);
+	cstd::int32_t& ref1 = rb.emplace_back(100);
+	CSTD_ASSERT(ref1 == 100, "[ring_buffer] emplace_back return");
+	CSTD_ASSERT(rb.front() == 100, "[ring_buffer] emplace_back value");
+
+	cstd::int32_t& ref2 = rb.emplace_front(200);
+	CSTD_ASSERT(ref2 == 200, "[ring_buffer] emplace_front return");
+	CSTD_ASSERT(rb.front() == 200, "[ring_buffer] emplace_front value");
+	CSTD_ASSERT(rb.back() == 100, "[ring_buffer] emplace_front preserved back");
+
+	cstd::int32_t& ref3 = rb.emplace_back(300);
+	CSTD_ASSERT(ref3 == 300, "[ring_buffer] emplace_back overwrite return");
+	CSTD_ASSERT(rb.front() == 100, "[ring_buffer] emplace_back overwrite front");
+	CSTD_ASSERT(rb.back() == 300, "[ring_buffer] emplace_back overwrite back");
+}
+
+static void test_ring_buffer_comparisons()
+{
+	cstd::ring_buffer<cstd::int32_t> a(3), b(5);
+	a.push_back(1);
+	a.push_back(2);
+	b.push_back(1);
+	b.push_back(2);
+	CSTD_ASSERT(a == b, "[ring_buffer] equal despite different capacity");
+	CSTD_ASSERT(!(a != b), "[ring_buffer] not unequal");
+
+	b.push_back(3);
+	CSTD_ASSERT(a < b, "[ring_buffer] shorter is less");
+	CSTD_ASSERT(a <= b, "[ring_buffer] shorter is less-equal");
+	CSTD_ASSERT(b > a, "[ring_buffer] longer is greater");
+	CSTD_ASSERT(b >= a, "[ring_buffer] longer is greater-equal");
+	CSTD_ASSERT(a != b, "[ring_buffer] different sizes unequal");
+
+	cstd::ring_buffer<cstd::int32_t> c(3), d(3);
+	c.push_back(1);
+	c.push_back(3);
+	d.push_back(1);
+	d.push_back(2);
+	CSTD_ASSERT(d < c, "[ring_buffer] lexicographic less");
+}
+
+static void test_ring_buffer_lifetime()
+{
+	lifetime_probe::live = 0;
+	lifetime_probe::copies = 0;
+	lifetime_probe::moves = 0;
+
+	{
+		cstd::ring_buffer<lifetime_probe> rb(3);
+		rb.emplace_back(1);
+		rb.emplace_back(2);
+		rb.emplace_back(3);
+		CSTD_ASSERT(lifetime_probe::live == 3, "[ring_buffer] live after 3 emplace");
+
+		rb.emplace_back(4);
+		CSTD_ASSERT(lifetime_probe::live == 3, "[ring_buffer] live after overwrite");
+		CSTD_ASSERT(rb.front().value == 2, "[ring_buffer] front value after overwrite");
+
+		rb.pop_front();
+		CSTD_ASSERT(lifetime_probe::live == 2, "[ring_buffer] live after pop_front");
+
+		rb.pop_back();
+		CSTD_ASSERT(lifetime_probe::live == 1, "[ring_buffer] live after pop_back");
+	}
+
+	CSTD_ASSERT(lifetime_probe::live == 0, "[ring_buffer] all destroyed after scope");
+
+	lifetime_probe::live = 0;
+	lifetime_probe::copies = 0;
+
+	{
+		cstd::ring_buffer<lifetime_probe> rb(2);
+		rb.emplace_back(10);
+		rb.emplace_back(20);
+
+		cstd::ring_buffer<lifetime_probe> copy(rb);
+		CSTD_ASSERT(lifetime_probe::live == 4, "[ring_buffer] live after copy");
+		CSTD_ASSERT(lifetime_probe::copies == 2, "[ring_buffer] copy count");
+
+		copy.clear();
+		CSTD_ASSERT(lifetime_probe::live == 2, "[ring_buffer] live after clear copy");
+	}
+
+	CSTD_ASSERT(lifetime_probe::live == 0, "[ring_buffer] all destroyed after copy test");
+
+	lifetime_probe::live = 0;
+	lifetime_probe::moves = 0;
+
+	{
+		cstd::ring_buffer<lifetime_probe> rb(2);
+		rb.emplace_back(1);
+
+		cstd::ring_buffer<lifetime_probe> moved(cstd::move(rb));
+		CSTD_ASSERT(lifetime_probe::live == 1, "[ring_buffer] live after move");
+		CSTD_ASSERT(rb.empty(), "[ring_buffer] source empty after move");
+	}
+
+	CSTD_ASSERT(lifetime_probe::live == 0, "[ring_buffer] all destroyed after move test");
+}
+
+static void test_ring_buffer_capacity_one()
+{
+	cstd::ring_buffer<cstd::int32_t> rb(1);
+	rb.push_back(10);
+	CSTD_ASSERT(rb.front() == 10 && rb.back() == 10, "[ring_buffer] cap-1 push_back");
+
+	rb.push_back(20);
+	CSTD_ASSERT(rb.size() == 1, "[ring_buffer] cap-1 still size 1");
+	CSTD_ASSERT(rb.front() == 20, "[ring_buffer] cap-1 overwritten");
+
+	rb.push_front(30);
+	CSTD_ASSERT(rb.front() == 30, "[ring_buffer] cap-1 push_front overwrite");
+
+	rb.pop_front();
+	CSTD_ASSERT(rb.empty(), "[ring_buffer] cap-1 empty after pop");
+}
+
+static void test_ring_buffer_try()
+{
+	cstd::ring_buffer<cstd::int32_t> rb(3);
+
+	CSTD_ASSERT(rb.try_push_back(10), "[ring_buffer] try_push_back into empty");
+	CSTD_ASSERT(rb.try_push_back(20), "[ring_buffer] try_push_back 2nd");
+	CSTD_ASSERT(rb.try_push_back(30), "[ring_buffer] try_push_back 3rd");
+	CSTD_ASSERT(!rb.try_push_back(40), "[ring_buffer] try_push_back full");
+	CSTD_ASSERT(rb.size() == 3, "[ring_buffer] try_push_back size unchanged on full");
+	CSTD_ASSERT(rb.front() == 10, "[ring_buffer] try_push_back preserved front");
+
+	CSTD_ASSERT(!rb.try_push_front(5), "[ring_buffer] try_push_front full");
+
+	cstd::int32_t out = 0;
+	CSTD_ASSERT(rb.try_pop_front(out), "[ring_buffer] try_pop_front non-empty");
+	CSTD_ASSERT(out == 10, "[ring_buffer] try_pop_front got front");
+	CSTD_ASSERT(rb.size() == 2, "[ring_buffer] try_pop_front decremented size");
+
+	CSTD_ASSERT(rb.try_pop_back(out), "[ring_buffer] try_pop_back non-empty");
+	CSTD_ASSERT(out == 30, "[ring_buffer] try_pop_back got back");
+	CSTD_ASSERT(rb.size() == 1, "[ring_buffer] try_pop_back decremented size");
+	CSTD_ASSERT(rb.front() == 20, "[ring_buffer] middle element remains");
+
+	rb.pop_front();
+	CSTD_ASSERT(!rb.try_pop_front(out), "[ring_buffer] try_pop_front empty");
+	CSTD_ASSERT(!rb.try_pop_back(out), "[ring_buffer] try_pop_back empty");
+
+	cstd::ring_buffer<cstd::int32_t> zero;
+	CSTD_ASSERT(!zero.try_push_back(1), "[ring_buffer] try_push_back zero-cap");
+	CSTD_ASSERT(!zero.try_pop_front(out), "[ring_buffer] try_pop_front zero-cap");
+
+	CSTD_ASSERT(rb.try_push_front(99), "[ring_buffer] try_push_front after drain");
+	CSTD_ASSERT(rb.front() == 99, "[ring_buffer] try_push_front value");
+}
+
+static void test_static_ring_buffer()
+{
+	cstd::static_ring_buffer<cstd::int32_t, 4> rb = {};
+	CSTD_ASSERT(rb.empty(), "[static_ring_buffer] starts empty");
+	CSTD_ASSERT(rb.capacity() == 4, "[static_ring_buffer] capacity is N");
+
+	rb.push_back(10);
+	rb.push_back(20);
+	rb.push_back(30);
+	CSTD_ASSERT(rb.size() == 3, "[static_ring_buffer] size after pushes");
+	CSTD_ASSERT(rb.front() == 10, "[static_ring_buffer] front");
+	CSTD_ASSERT(rb.back() == 30, "[static_ring_buffer] back");
+	CSTD_ASSERT(rb[1] == 20, "[static_ring_buffer] operator[]");
+
+	rb.push_back(40);
+	CSTD_ASSERT(rb.full(), "[static_ring_buffer] full at capacity");
+
+	rb.push_back(50);
+	CSTD_ASSERT(rb.size() == 4, "[static_ring_buffer] size stays at cap after overwrite");
+	CSTD_ASSERT(rb.front() == 20, "[static_ring_buffer] front advanced after overwrite");
+	CSTD_ASSERT(rb.back() == 50, "[static_ring_buffer] back is new element");
+
+	rb.pop_front();
+	CSTD_ASSERT(rb.front() == 30, "[static_ring_buffer] pop_front");
+	rb.pop_back();
+	CSTD_ASSERT(rb.back() == 40, "[static_ring_buffer] pop_back");
+	CSTD_ASSERT(rb.size() == 2, "[static_ring_buffer] size after pops");
+
+	rb.clear();
+	CSTD_ASSERT(rb.empty(), "[static_ring_buffer] empty after clear");
+}
+
+static void test_static_ring_buffer_try()
+{
+	cstd::static_ring_buffer<cstd::int32_t, 3> rb = {};
+
+	CSTD_ASSERT(rb.try_push_back(10), "[static_ring_buffer] try_push_back 1");
+	CSTD_ASSERT(rb.try_push_back(20), "[static_ring_buffer] try_push_back 2");
+	CSTD_ASSERT(rb.try_push_back(30), "[static_ring_buffer] try_push_back 3");
+	CSTD_ASSERT(!rb.try_push_back(40), "[static_ring_buffer] try_push_back full");
+	CSTD_ASSERT(!rb.try_push_front(5), "[static_ring_buffer] try_push_front full");
+	CSTD_ASSERT(rb.front() == 10, "[static_ring_buffer] elements intact after failed push");
+
+	cstd::int32_t out = 0;
+	CSTD_ASSERT(rb.try_pop_front(out), "[static_ring_buffer] try_pop_front");
+	CSTD_ASSERT(out == 10, "[static_ring_buffer] try_pop_front got 10");
+
+	CSTD_ASSERT(rb.try_pop_back(out), "[static_ring_buffer] try_pop_back");
+	CSTD_ASSERT(out == 30, "[static_ring_buffer] try_pop_back got 30");
+
+	CSTD_ASSERT(rb.try_pop_front(out), "[static_ring_buffer] drain last");
+	CSTD_ASSERT(out == 20, "[static_ring_buffer] got 20");
+
+	CSTD_ASSERT(!rb.try_pop_front(out), "[static_ring_buffer] try_pop_front empty");
+	CSTD_ASSERT(!rb.try_pop_back(out), "[static_ring_buffer] try_pop_back empty");
+
+	CSTD_ASSERT(rb.try_push_front(99), "[static_ring_buffer] try_push_front after drain");
+	CSTD_ASSERT(rb.front() == 99, "[static_ring_buffer] try_push_front value");
+}
+
+static void test_static_ring_buffer_iteration()
+{
+	cstd::static_ring_buffer<cstd::int32_t, 4> rb = {};
+
+	for (cstd::int32_t i = 0; i < 6; ++i)
+	{
+		rb.push_back(i * 10);
+	}
+
+	CSTD_ASSERT(rb.size() == 4, "[static_ring_buffer] iter size");
+	CSTD_ASSERT(rb.front() == 20, "[static_ring_buffer] iter front after wrap");
+
+	cstd::int32_t expected = 20;
+	for (auto it = rb.begin(); it != rb.end(); ++it)
+	{
+		CSTD_ASSERT(*it == expected, "[static_ring_buffer] forward iteration");
+		expected += 10;
+	}
+
+	auto it = rb.end();
+	expected = 50;
+	while (it != rb.begin())
+	{
+		--it;
+		CSTD_ASSERT(*it == expected, "[static_ring_buffer] reverse iteration");
+		expected -= 10;
+	}
+
+	const auto& crb = rb;
+	cstd::int32_t sum = 0;
+	for (auto ci = crb.begin(); ci != crb.end(); ++ci)
+	{
+		sum += *ci;
+	}
+	CSTD_ASSERT(sum == 20 + 30 + 40 + 50, "[static_ring_buffer] const iteration sum");
+}
+
+static void test_static_ring_buffer_copy_move()
+{
+	cstd::static_ring_buffer<cstd::int32_t, 4> a = {};
+	a.push_back(1);
+	a.push_back(2);
+	a.push_back(3);
+
+	cstd::static_ring_buffer<cstd::int32_t, 4> b(a);
+	CSTD_ASSERT(b.size() == 3, "[static_ring_buffer] copy ctor size");
+	CSTD_ASSERT(b[0] == 1 && b[1] == 2 && b[2] == 3, "[static_ring_buffer] copy ctor values");
+
+	cstd::static_ring_buffer<cstd::int32_t, 4> c = {};
+	c = a;
+	CSTD_ASSERT(c.size() == 3 && c[0] == 1, "[static_ring_buffer] copy assign");
+
+	cstd::static_ring_buffer<cstd::int32_t, 4> d(cstd::move(a));
+	CSTD_ASSERT(d.size() == 3 && d[0] == 1, "[static_ring_buffer] move ctor values");
+	CSTD_ASSERT(a.empty(), "[static_ring_buffer] source empty after move");
+
+	cstd::static_ring_buffer<cstd::int32_t, 4> e = {};
+	e.push_back(99);
+	e = cstd::move(d);
+	CSTD_ASSERT(e.size() == 3 && e[2] == 3, "[static_ring_buffer] move assign");
+	CSTD_ASSERT(d.empty(), "[static_ring_buffer] source empty after move assign");
+
+	b.swap(c);
+	CSTD_ASSERT(b[0] == 1 && c[0] == 1, "[static_ring_buffer] swap");
+
+	cstd::static_ring_buffer<cstd::int32_t, 4> f = {};
+	f.push_back(100);
+	cstd::swap(e, f);
+	CSTD_ASSERT(f.size() == 3 && e.size() == 1, "[static_ring_buffer] free swap");
+}
+
+static void test_static_ring_buffer_comparisons()
+{
+	cstd::static_ring_buffer<cstd::int32_t, 4> a = {};
+	cstd::static_ring_buffer<cstd::int32_t, 4> b = {};
+
+	a.push_back(1);
+	a.push_back(2);
+	b.push_back(1);
+	b.push_back(2);
+	CSTD_ASSERT(a == b, "[static_ring_buffer] equal");
+	CSTD_ASSERT(!(a != b), "[static_ring_buffer] not not-equal");
+	CSTD_ASSERT(a <= b, "[static_ring_buffer] le when equal");
+	CSTD_ASSERT(a >= b, "[static_ring_buffer] ge when equal");
+
+	b.push_back(3);
+	CSTD_ASSERT(a < b, "[static_ring_buffer] shorter < longer");
+	CSTD_ASSERT(b > a, "[static_ring_buffer] longer > shorter");
+	CSTD_ASSERT(a != b, "[static_ring_buffer] different sizes not equal");
+
+	cstd::static_ring_buffer<cstd::int32_t, 4> c = {};
+	cstd::static_ring_buffer<cstd::int32_t, 4> d = {};
+	c.push_back(1);
+	c.push_back(3);
+	d.push_back(1);
+	d.push_back(2);
+	CSTD_ASSERT(d < c, "[static_ring_buffer] element-wise less");
+}
+
+static void test_static_ring_buffer_lifetime()
+{
+	lifetime_probe::live = 0;
+	lifetime_probe::copies = 0;
+	lifetime_probe::moves = 0;
+
+	{
+		cstd::static_ring_buffer<lifetime_probe, 4> rb = {};
+		rb.push_back(lifetime_probe(1));
+		rb.push_back(lifetime_probe(2));
+		rb.push_back(lifetime_probe(3));
+		CSTD_ASSERT(lifetime_probe::live == 3, "[static_ring_buffer] 3 live after push");
+
+		rb.push_back(lifetime_probe(4));
+		rb.push_back(lifetime_probe(5));
+		CSTD_ASSERT(lifetime_probe::live == 4, "[static_ring_buffer] still 4 live after overwrite");
+		CSTD_ASSERT(rb.front().value == 2, "[static_ring_buffer] front after overwrite");
+	}
+
+	CSTD_ASSERT(lifetime_probe::live == 0, "[static_ring_buffer] all destroyed after scope");
+
+	{
+		cstd::static_ring_buffer<lifetime_probe, 4> rb = {};
+		rb.push_back(lifetime_probe(10));
+		rb.push_back(lifetime_probe(20));
+
+		cstd::static_ring_buffer<lifetime_probe, 4> copy(rb);
+		CSTD_ASSERT(copy.size() == 2, "[static_ring_buffer] copy size");
+		CSTD_ASSERT(copy[0].value == 10, "[static_ring_buffer] copy value");
+
+		cstd::static_ring_buffer<lifetime_probe, 4> moved(cstd::move(rb));
+		CSTD_ASSERT(moved.size() == 2, "[static_ring_buffer] move size");
+		CSTD_ASSERT(rb.empty(), "[static_ring_buffer] source empty after move");
+	}
+
+	CSTD_ASSERT(lifetime_probe::live == 0, "[static_ring_buffer] all destroyed after copy/move scope");
+}
+
+static void test_static_ring_buffer_zero_init()
+{
+	// Value-initialization (= {}) zero-fills all members, producing a valid empty buffer.
+	// At file scope this is what the linker does for .bss globals.
+	cstd::static_ring_buffer<cstd::int32_t, 8> buf = {};
+
+	CSTD_ASSERT(buf.empty(), "[static_ring_buffer] zero-init is empty");
+	CSTD_ASSERT(buf.size() == 0, "[static_ring_buffer] zero-init size 0");
+	CSTD_ASSERT(buf.capacity() == 8, "[static_ring_buffer] capacity");
+
+	buf.push_back(42);
+	CSTD_ASSERT(buf.front() == 42, "[static_ring_buffer] usable after zero-init");
+}
+
 cstd::int32_t main()
 {
 	cstd::atomic<cstd::size_t> counter(0);
@@ -1286,17 +2458,28 @@ cstd::int32_t main()
 
 	test_bug_fixes();
 	test_shared_ptr_conversion();
+	test_pointer_casts_shared();
+	test_pointer_casts_unique();
 	test_foundational_utilities();
+	test_numeric_limits();
+	test_type_traits();
 	test_vector_emplace_erase();
 	test_vector_assign_insert();
+	test_vector_capacity_swap();
 	test_leaf_types();
 	test_string();
+	test_string_view_search();
+	test_string_search();
 	test_optional();
 	test_expected();
 	test_algorithm_nonmodifying();
 	test_ranges();
+	test_ranges_extra();
 	test_algorithm_modifying();
 	test_algorithm_sorted();
+	test_algorithm_extra();
+	test_algorithm_iterators();
+	test_algorithm_projected();
 	test_flat_map();
 	test_mutex();
 	test_unique_lock();
@@ -1308,6 +2491,29 @@ cstd::int32_t main()
 	test_double_linked_list();
 	test_double_linked_list_iterator();
 	test_double_linked_list_lifetime();
+	test_pointer_comparisons();
+	test_optional_comparisons();
+	test_function_comparisons();
+	test_unordered_map();
+	test_unordered_map_iteration();
+	test_unordered_map_modifiers();
+	test_unordered_map_rehash();
+	test_ring_buffer();
+	test_ring_buffer_push_front();
+	test_ring_buffer_iteration();
+	test_ring_buffer_copy_move();
+	test_ring_buffer_emplace();
+	test_ring_buffer_comparisons();
+	test_ring_buffer_lifetime();
+	test_ring_buffer_capacity_one();
+	test_ring_buffer_try();
+	test_static_ring_buffer();
+	test_static_ring_buffer_try();
+	test_static_ring_buffer_iteration();
+	test_static_ring_buffer_copy_move();
+	test_static_ring_buffer_comparisons();
+	test_static_ring_buffer_lifetime();
+	test_static_ring_buffer_zero_init();
 
 	*owner = 7;
 

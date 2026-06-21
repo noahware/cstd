@@ -56,6 +56,9 @@
     <ClInclude Include="src\flat_map.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\function.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="src\list.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -93,6 +96,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\limits.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ring_buffer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\static_ring_buffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\unordered_map.hpp">
