@@ -151,7 +151,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="crt.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="..\common\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\algorithm.hpp" />

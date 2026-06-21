@@ -2,8 +2,13 @@
 
 namespace cstd
 {
+#if defined(_MSC_VER)
     template <class T>
     inline constexpr bool is_trivially_destructible_v = __is_trivially_destructible(T);
+#else
+    template <class T>
+    inline constexpr bool is_trivially_destructible_v = __has_trivial_destructor(T);
+#endif
 
     template <class T>
     inline constexpr bool is_trivially_copyable_v = __is_trivially_copyable(T);
@@ -325,7 +330,31 @@ namespace cstd
     template <class T> struct is_trivial : integral_constant<bool, __is_trivial(T)> { };
     template <class T> inline constexpr bool is_trivial_v = is_trivial<T>::value;
 
+#if defined(_MSC_VER)
     template <class T> struct is_destructible : integral_constant<bool, __is_destructible(T)> { };
+#else
+    namespace detail
+    {
+        struct is_destructible_helper
+        {
+            template <class T, class = decltype(declval<T&>().~T())>
+            static true_type test(int);
+
+            template <class>
+            static false_type test(...);
+        };
+    }
+
+    template <class T> struct is_destructible
+        : decltype(detail::is_destructible_helper::test<T>(0)) { };
+
+    template <class T> struct is_destructible<T&> : true_type { };
+    template <class T> struct is_destructible<T&&> : true_type { };
+    template <> struct is_destructible<void> : false_type { };
+    template <> struct is_destructible<const void> : false_type { };
+    template <> struct is_destructible<volatile void> : false_type { };
+    template <> struct is_destructible<const volatile void> : false_type { };
+#endif
     template <class T> inline constexpr bool is_destructible_v = is_destructible<T>::value;
 
     template <class T> struct has_virtual_destructor : integral_constant<bool, __has_virtual_destructor(T)> { };

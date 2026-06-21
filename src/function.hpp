@@ -114,7 +114,7 @@ namespace cstd
 			static constexpr vtable_type vtable = { &invoke, &destroy, &copy, &move_to };
 		};
 
-		mutable alignas(sbo_align) byte storage_[sbo_size];
+		alignas(sbo_align) mutable byte storage_[sbo_size];
 		const vtable_type* vtable_;
 
 	public:
