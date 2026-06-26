@@ -530,6 +530,25 @@ static void test_string()
 	CSTD_ASSERT(abc < abd && abd > abc && abc != abd && abc == abc, "[test] string comparisons");
 }
 
+static void test_string_conversion()
+{
+	cstd::wstring_view wide_view(L"Hello");
+	cstd::string narrowed = cstd::to_string(wide_view);
+	CSTD_ASSERT(narrowed.size() == 5 && narrowed == cstd::string_view("Hello"), "[test] to_string from wstring_view");
+	CSTD_ASSERT(narrowed.data()[5] == '\0', "[test] to_string trailing NUL");
+
+	cstd::string_view narrow_view("World");
+	cstd::wstring widened = cstd::to_wstring(narrow_view);
+	CSTD_ASSERT(widened.size() == 5 && widened == cstd::wstring_view(L"World"), "[test] to_wstring from string_view");
+	CSTD_ASSERT(widened.data()[5] == L'\0', "[test] to_wstring trailing NUL");
+
+	cstd::string empty_narrow = cstd::to_string(cstd::wstring_view(L""));
+	CSTD_ASSERT(empty_narrow.empty(), "[test] to_string empty");
+
+	cstd::wstring empty_wide = cstd::to_wstring(cstd::string_view(""));
+	CSTD_ASSERT(empty_wide.empty(), "[test] to_wstring empty");
+}
+
 static void test_string_view_search()
 {
 	cstd::string_view text("abracadabra");
@@ -2468,6 +2487,7 @@ cstd::int32_t main()
 	test_vector_capacity_swap();
 	test_leaf_types();
 	test_string();
+	test_string_conversion();
 	test_string_view_search();
 	test_string_search();
 	test_optional();
