@@ -39,16 +39,34 @@ namespace cstd::ranges
 		return cstd::find(range.begin(), range.end(), value);
 	}
 
+	template <class T, class V, class Proj>
+	[[nodiscard]] constexpr T* find(const cstd::span<T> range, const V& value, Proj proj)
+	{
+		return cstd::find(range.begin(), range.end(), value, proj);
+	}
+
 	template <class T, class UnaryPredicate>
 	[[nodiscard]] constexpr T* find_if(const cstd::span<T> range, UnaryPredicate predicate)
 	{
 		return cstd::find_if(range.begin(), range.end(), predicate);
 	}
 
+	template <class T, class UnaryPredicate, class Proj>
+	[[nodiscard]] constexpr T* find_if(const cstd::span<T> range, UnaryPredicate predicate, Proj proj)
+	{
+		return cstd::find_if(range.begin(), range.end(), predicate, proj);
+	}
+
 	template <class T, class UnaryPredicate>
 	[[nodiscard]] constexpr T* find_if_not(const cstd::span<T> range, UnaryPredicate predicate)
 	{
 		return cstd::find_if_not(range.begin(), range.end(), predicate);
+	}
+
+	template <class T, class UnaryPredicate, class Proj>
+	[[nodiscard]] constexpr T* find_if_not(const cstd::span<T> range, UnaryPredicate predicate, Proj proj)
+	{
+		return cstd::find_if_not(range.begin(), range.end(), predicate, proj);
 	}
 
 	template <class T>
