@@ -429,6 +429,44 @@ namespace cstd
 		}
 	};
 
+	// a string_view that guarantees data()[size()] == '\0', so it is safe to pass to C apis
+	class zstring_view : public string_view
+	{
+	public:
+		constexpr zstring_view() noexcept
+				:	string_view("", 0) {}
+
+		constexpr zstring_view(const_pointer const data) noexcept
+				:	string_view(data) {}
+
+		constexpr zstring_view(const_pointer const data, const size_type size)
+				:	string_view(data, size)
+		{
+			CSTD_ASSERT(data[size] == character_type(0), "[zstring_view] data is not null terminated");
+		}
+
+		[[nodiscard]] constexpr const_pointer c_str() const noexcept
+		{
+			return data();
+		}
+
+		// dropping the end would break the terminator guarantee
+		constexpr void remove_suffix(size_type) = delete;
+
+		[[nodiscard]] constexpr zstring_view substr(const size_type position = 0) const
+		{
+			CSTD_ASSERT(position <= size(), "[zstring_view] substr position out of range");
+
+			return zstring_view(data() + position, size() - position);
+		}
+
+		// a bounded substr is no longer terminated, so it decays to a plain string_view
+		[[nodiscard]] constexpr string_view substr(const size_type position, const size_type count) const
+		{
+			return string_view::substr(position, count);
+		}
+	};
+
 	class wstring_view : public base_string_view<wchar_t>
 	{
 	public:
@@ -515,6 +553,44 @@ namespace cstd
 		[[nodiscard]] constexpr bool operator>=(const wstring_view& right) const
 		{
 			return !(*this < right);
+		}
+	};
+
+	// a wstring_view that guarantees data()[size()] == L'\0'
+	class wzstring_view : public wstring_view
+	{
+	public:
+		constexpr wzstring_view() noexcept
+				:	wstring_view(L"", 0) {}
+
+		constexpr wzstring_view(const_pointer const data) noexcept
+				:	wstring_view(data) {}
+
+		constexpr wzstring_view(const_pointer const data, const size_type size)
+				:	wstring_view(data, size)
+		{
+			CSTD_ASSERT(data[size] == character_type(0), "[wzstring_view] data is not null terminated");
+		}
+
+		[[nodiscard]] constexpr const_pointer c_str() const noexcept
+		{
+			return data();
+		}
+
+		// dropping the end would break the terminator guarantee
+		constexpr void remove_suffix(size_type) = delete;
+
+		[[nodiscard]] constexpr wzstring_view substr(const size_type position = 0) const
+		{
+			CSTD_ASSERT(position <= size(), "[wzstring_view] substr position out of range");
+
+			return wzstring_view(data() + position, size() - position);
+		}
+
+		// a bounded substr is no longer terminated, so it decays to a plain wstring_view
+		[[nodiscard]] constexpr wstring_view substr(const size_type position, const size_type count) const
+		{
+			return wstring_view::substr(position, count);
 		}
 	};
 }
