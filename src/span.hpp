@@ -31,6 +31,12 @@ namespace cstd
 				:	elements_(elements.begin()),
 					count_(elements.size()) { }
 
+		// lets vector<U> (const or not) convert to span<const U>
+		template <class U>
+		constexpr span(const vector<U>& elements) noexcept
+				:	elements_(elements.data()),
+					count_(elements.size()) { }
+
 		template <class U, size_type Count>
 		constexpr span(array<U, Count>& array) noexcept
 				:	elements_(array.data()),
