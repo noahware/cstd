@@ -213,6 +213,42 @@ namespace cstd
 			return iterator(this, N);
 		}
 
+		// Index of the first run of at least `count` consecutive set bits starting at or after `from`;
+		// returns N if no such run exists.
+		[[nodiscard]] constexpr size_t find_first_run(const size_t count, const size_t from = 0) const noexcept
+		{
+			if (count == 0)
+			{
+				return from <= N ? from : N;
+			}
+			if (from >= N || count > N - from)
+			{
+				return N;
+			}
+
+			size_t run   = 0;
+			size_t start = from;
+			for (size_t i = from; i < N; ++i)
+			{
+				if (test(i))
+				{
+					if (run == 0)
+					{
+						start = i;
+					}
+					if (++run == count)
+					{
+						return start;
+					}
+				}
+				else
+				{
+					run = 0;
+				}
+			}
+			return N;
+		}
+
 	private:
 		// Index of the lowest set bit at position >= from, or N if there is none.
 		[[nodiscard]] constexpr size_t next_set(const size_t from) const noexcept
