@@ -58,6 +58,15 @@ namespace cstd
     template <class T, class U>
     inline constexpr bool is_same_v = is_same<T, U>::value;
 
+    namespace detail
+    {
+        template <class T, class U>
+        concept same_as_impl = is_same_v<T, U>;
+    }
+
+    template <class T, class U>
+    concept same_as = detail::same_as_impl<T, U> && detail::same_as_impl<U, T>;
+
     template <bool Condition, class T, class F>
     struct conditional
     {
