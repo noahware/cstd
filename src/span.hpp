@@ -42,6 +42,12 @@ namespace cstd
 				:	elements_(array.data()),
 					count_(Count) { }
 
+		// lets array<U, Count> (const or not) convert to span<const U>
+		template <class U, size_type Count>
+		constexpr span(const array<U, Count>& array) noexcept
+				:	elements_(array.data()),
+					count_(Count) { }
+
 		[[nodiscard]] constexpr pointer begin() const noexcept
 		{
 			return elements_;
