@@ -23,6 +23,9 @@
 #include "ring_buffer.hpp"
 #include "static_ring_buffer.hpp"
 #include "unordered_map.hpp"
+#include "bitset.hpp"
+#include "charconv.hpp"
+#include "views.hpp"
 
 struct point
 {
@@ -2332,6 +2335,377 @@ static void test_static_ring_buffer_lifetime()
 	CSTD_ASSERT(lifetime_probe::live == 0, "[static_ring_buffer] all destroyed after copy/move scope");
 }
 
+static void test_bitset()
+{
+	cstd::bitset<130> bits;
+
+	CSTD_ASSERT(bits.size() == 130 && bits.count() == 0, "[test] default bitset must be empty");
+	CSTD_ASSERT(bits.none() && !bits.any() && !bits.all(), "[test] empty bitset none/any/all");
+
+	bits.set(0).set(65).set(129);
+
+	CSTD_ASSERT(bits.count() == 3 && bits.any() && !bits.none(), "[test] bitset set() must count");
+	CSTD_ASSERT(bits.test(65) && bits[129] && !bits.test(64), "[test] bitset test() per position");
+
+	bits.reset(65);
+	CSTD_ASSERT(!bits.test(65) && bits.count() == 2, "[test] bitset reset() clears one bit");
+
+	bits.flip(65);
+	CSTD_ASSERT(bits.test(65) && bits.count() == 3, "[test] bitset flip() toggles one bit");
+
+	bits.set();
+	CSTD_ASSERT(bits.all() && bits.count() == 130, "[test] bitset set() must set every bit");
+
+	bits.flip();
+	CSTD_ASSERT(bits.none() && bits.count() == 0, "[test] bitset flip() must clear a full bitset");
+
+	// Iteration visits only the set bits, in ascending order.
+	bits.reset().set(3).set(70).set(128);
+
+	cstd::size_t visited[4] = { 0, 0, 0, 0 };
+	cstd::size_t seen = 0;
+
+	for (const cstd::size_t index : bits)
+	{
+		CSTD_ASSERT(seen < 4, "[test] bitset iteration must visit only the set bits");
+		visited[seen++] = index;
+	}
+
+	CSTD_ASSERT(seen == 3 && visited[0] == 3 && visited[1] == 70 && visited[2] == 128,
+		"[test] bitset iteration must yield ascending set-bit indices");
+
+	cstd::bitset<8> empty;
+	for (const cstd::size_t index : empty)
+	{
+		(void)index;
+		CSTD_ASSERT(false, "[test] iteration over an empty bitset must not visit anything");
+	}
+
+	cstd::bitset<16> runs;
+	runs.set(4).set(5).set(6).set(12);
+
+	CSTD_ASSERT(runs.find_first_run(0) == 0, "[test] a zero-length run starts where asked");
+	CSTD_ASSERT(runs.find_first_run(1) == 4, "[test] find_first_run finds the first set bit");
+	CSTD_ASSERT(runs.find_first_run(3) == 4, "[test] find_first_run finds an exact-length run");
+	CSTD_ASSERT(runs.find_first_run(4) == 16, "[test] find_first_run reports N when no run fits");
+	CSTD_ASSERT(runs.find_first_run(1, 7) == 12, "[test] find_first_run honours the start position");
+
+	cstd::bitset<64> left;
+	cstd::bitset<64> right;
+
+	left.set(1).set(2);
+	right.set(2).set(3);
+
+	CSTD_ASSERT((left & right).count() == 1 && (left & right).test(2), "[test] bitset operator&");
+	CSTD_ASSERT((left | right).count() == 3, "[test] bitset operator|");
+	CSTD_ASSERT((left ^ right).count() == 2 && !(left ^ right).test(2), "[test] bitset operator^");
+	CSTD_ASSERT((~left).count() == 62 && !(~left).test(1), "[test] bitset operator~");
+	CSTD_ASSERT(left != right && left == left, "[test] bitset comparisons");
+
+	left &= right;
+	CSTD_ASSERT(left.count() == 1 && left.test(2), "[test] bitset operator&=");
+
+	// The unused high bits of the final word must stay clear, or count() would over-report.
+	cstd::bitset<70> partial;
+	partial.set();
+	CSTD_ASSERT(partial.count() == 70, "[test] bitset must not count bits past N");
+}
+
+static void test_bitset_constexpr()
+{
+	// The whole type has to work in constant evaluation, which is what rules out the
+	// non-constexpr popcount/bit-scan intrinsics MSVC offers.
+	constexpr cstd::size_t counted = []
+	{
+		cstd::bitset<200> bits;
+		bits.set(0).set(63).set(64).set(199);
+		return bits.count();
+	}();
+
+	constexpr cstd::size_t first = []
+	{
+		cstd::bitset<200> bits;
+		bits.set(137);
+
+		cstd::size_t found = 200;
+		for (const cstd::size_t index : bits)
+		{
+			found = index;
+			break;
+		}
+		return found;
+	}();
+
+	static_assert(counted == 4, "[test] bitset::count() must be usable in constant evaluation");
+	static_assert(first == 137, "[test] bitset iteration must be usable in constant evaluation");
+}
+
+static void test_from_chars()
+{
+	const char decimal[] = "1234rest";
+	cstd::uint32_t value = 0;
+	cstd::from_chars_result result = cstd::from_chars(decimal, decimal + 8, value);
+
+	CSTD_ASSERT(result.ec == 0 && value == 1234, "[test] from_chars parses decimal digits");
+	CSTD_ASSERT(result.ptr == decimal + 4, "[test] from_chars stops at the first non-digit");
+
+	const char negative[] = "-42";
+	cstd::int32_t signed_value = 0;
+	result = cstd::from_chars(negative, negative + 3, signed_value);
+
+	CSTD_ASSERT(result.ec == 0 && signed_value == -42, "[test] from_chars parses a negative value");
+	CSTD_ASSERT(result.ptr == negative + 3, "[test] from_chars consumes the whole negative value");
+
+	const char hex[] = "ffFF";
+	cstd::uint32_t hex_value = 0;
+	result = cstd::from_chars(hex, hex + 4, hex_value, 16);
+
+	CSTD_ASSERT(result.ec == 0 && hex_value == 0xffff, "[test] from_chars honours the base");
+
+	const char binary[] = "1011";
+	cstd::uint32_t binary_value = 0;
+	result = cstd::from_chars(binary, binary + 4, binary_value, 2);
+
+	CSTD_ASSERT(result.ec == 0 && binary_value == 11, "[test] from_chars parses base 2");
+
+	// A digit the base does not allow is not a digit at all.
+	const char limited[] = "129";
+	cstd::uint32_t limited_value = 0;
+	result = cstd::from_chars(limited, limited + 3, limited_value, 8);
+
+	CSTD_ASSERT(result.ec == 0 && limited_value == 10 && result.ptr == limited + 2,
+		"[test] from_chars stops at a digit the base does not allow");
+
+	const char junk[] = "zzz";
+	cstd::uint32_t junk_value = 7;
+	result = cstd::from_chars(junk, junk + 3, junk_value);
+
+	CSTD_ASSERT(result.ec != 0 && result.ptr == junk && junk_value == 7,
+		"[test] from_chars reports failure without touching the value");
+
+	const char empty[] = "";
+	result = cstd::from_chars(empty, empty, junk_value);
+	CSTD_ASSERT(result.ec != 0 && result.ptr == empty, "[test] from_chars on an empty range fails");
+
+	const char lone_sign[] = "-";
+	result = cstd::from_chars(lone_sign, lone_sign + 1, signed_value);
+	CSTD_ASSERT(result.ec != 0 && result.ptr == lone_sign, "[test] from_chars rejects a lone sign");
+
+	// Overflow is reported rather than wrapping.
+	const char too_big[] = "300";
+	cstd::uint8_t narrow = 0;
+	result = cstd::from_chars(too_big, too_big + 3, narrow);
+
+	CSTD_ASSERT(result.ec != 0, "[test] from_chars reports unsigned overflow");
+
+	const char too_positive[] = "200";
+	cstd::int8_t narrow_signed = 0;
+	result = cstd::from_chars(too_positive, too_positive + 3, narrow_signed);
+
+	CSTD_ASSERT(result.ec != 0, "[test] from_chars reports signed overflow");
+
+	const char most_negative[] = "-128";
+	result = cstd::from_chars(most_negative, most_negative + 4, narrow_signed);
+
+	CSTD_ASSERT(result.ec == 0 && narrow_signed == -128,
+		"[test] from_chars accepts the most negative value of a signed type");
+
+	constexpr cstd::uint32_t parsed = []
+	{
+		const char text[] = "4096";
+		cstd::uint32_t out = 0;
+		(void)cstd::from_chars(text, text + 4, out);
+		return out;
+	}();
+
+	static_assert(parsed == 4096, "[test] from_chars must work in constant evaluation");
+}
+
+static void test_views()
+{
+	cstd::int32_t total = 0;
+	for (const cstd::int32_t value : cstd::views::iota(1, 5))
+	{
+		total += value;
+	}
+
+	CSTD_ASSERT(total == 10, "[test] bounded iota yields [start, bound)");
+
+	cstd::int32_t taken = 0;
+	cstd::int32_t count = 0;
+	for (const cstd::int32_t value : cstd::views::iota(10))
+	{
+		taken += value;
+		if (++count == 3)
+		{
+			break;
+		}
+	}
+
+	CSTD_ASSERT(taken == 33 && count == 3, "[test] unbounded iota keeps incrementing");
+
+	cstd::vector<cstd::int32_t> numbers;
+	for (cstd::int32_t i = 0; i < 10; ++i)
+	{
+		numbers.push_back(i);
+	}
+
+	cstd::int32_t doubled = 0;
+	for (const cstd::int32_t value : numbers | cstd::views::transform([](const cstd::int32_t x) { return x * 2; }))
+	{
+		doubled += value;
+	}
+
+	CSTD_ASSERT(doubled == 90, "[test] transform view maps every element");
+
+	cstd::int32_t evens = 0;
+	for (const cstd::int32_t value : numbers | cstd::views::filter([](const cstd::int32_t x) { return x % 2 == 0; }))
+	{
+		evens += value;
+	}
+
+	CSTD_ASSERT(evens == 20, "[test] filter view keeps only matching elements");
+
+	cstd::int32_t prefix = 0;
+	for (const cstd::int32_t value : numbers | cstd::views::take_while([](const cstd::int32_t x) { return x < 4; }))
+	{
+		prefix += value;
+	}
+
+	CSTD_ASSERT(prefix == 6, "[test] take_while view stops at the first failure");
+
+	cstd::int32_t composed = 0;
+	for (const cstd::int32_t value : numbers
+		| cstd::views::filter([](const cstd::int32_t x) { return x % 2 == 0; })
+		| cstd::views::transform([](const cstd::int32_t x) { return x * 3; }))
+	{
+		composed += value;
+	}
+
+	CSTD_ASSERT(composed == 60, "[test] piped views compose");
+
+	// A closure composed before it ever sees a range behaves the same way.
+	const auto pipeline = cstd::views::transform([](const cstd::int32_t x) { return x + 1; })
+		| cstd::views::filter([](const cstd::int32_t x) { return x % 3 == 0; });
+
+	cstd::int32_t through_closure = 0;
+	for (const cstd::int32_t value : numbers | pipeline)
+	{
+		through_closure += value;
+	}
+
+	CSTD_ASSERT(through_closure == 18, "[test] closures compose before being piped a range");
+
+	cstd::vector<cstd::vector<cstd::int32_t>> nested;
+
+	cstd::vector<cstd::int32_t> first;
+	first.push_back(1);
+	first.push_back(2);
+	nested.push_back(first);
+
+	nested.push_back(cstd::vector<cstd::int32_t>());		// an empty inner range must be skipped
+
+	cstd::vector<cstd::int32_t> third;
+	third.push_back(3);
+	nested.push_back(third);
+
+	cstd::int32_t flattened = 0;
+	cstd::int32_t flattened_count = 0;
+	for (const cstd::int32_t value : nested | cstd::views::join)
+	{
+		flattened += value;
+		++flattened_count;
+	}
+
+	CSTD_ASSERT(flattened == 6 && flattened_count == 3, "[test] join view flattens and skips empties");
+
+	// Views are lazy: nothing runs until iteration.
+	cstd::int32_t calls = 0;
+	const auto lazy = numbers | cstd::views::transform([&calls](const cstd::int32_t x) { ++calls; return x; });
+
+	CSTD_ASSERT(calls == 0, "[test] building a view must not invoke the function");
+
+	for (const cstd::int32_t value : lazy)
+	{
+		(void)value;
+	}
+
+	CSTD_ASSERT(calls == 10, "[test] iterating a view invokes the function once per element");
+}
+
+static void test_shared_mutex()
+{
+	cstd::shared_mutex device;
+
+	// Readers share; a writer has to wait for all of them.
+	device.lock_shared();
+	CSTD_ASSERT(device.try_lock_shared(), "[test] a second reader may take a shared lock");
+	CSTD_ASSERT(!device.try_lock(), "[test] a writer must not get in while readers hold the lock");
+
+	device.unlock_shared();
+	device.unlock_shared();
+
+	CSTD_ASSERT(device.try_lock(), "[test] a writer takes the lock once the readers leave");
+	CSTD_ASSERT(!device.try_lock_shared(), "[test] a reader must not get in while a writer holds the lock");
+	device.unlock();
+
+	device.lock();
+	device.unlock();
+
+	{
+		cstd::shared_lock<cstd::shared_mutex> reader(device);
+
+		CSTD_ASSERT(reader.owns_lock() && static_cast<bool>(reader), "[test] shared_lock locks on construction");
+		CSTD_ASSERT(reader.mutex() == &device, "[test] shared_lock remembers its mutex");
+		CSTD_ASSERT(!device.try_lock(), "[test] shared_lock must hold off writers");
+	}
+
+	CSTD_ASSERT(device.try_lock(), "[test] shared_lock must release on destruction");
+	device.unlock();
+
+	{
+		cstd::shared_lock<cstd::shared_mutex> deferred(device, cstd::defer_lock_t{});
+
+		CSTD_ASSERT(!deferred.owns_lock(), "[test] defer_lock must not acquire");
+		CSTD_ASSERT(deferred.try_lock() && deferred.owns_lock(), "[test] shared_lock try_lock acquires");
+
+		deferred.unlock();
+		CSTD_ASSERT(!deferred.owns_lock(), "[test] shared_lock unlock releases");
+
+		deferred.lock();
+		CSTD_ASSERT(deferred.owns_lock(), "[test] shared_lock lock re-acquires");
+
+		cstd::shared_lock<cstd::shared_mutex> moved(cstd::move(deferred));
+
+		CSTD_ASSERT(moved.owns_lock() && !deferred.owns_lock(), "[test] shared_lock move transfers ownership");
+		CSTD_ASSERT(deferred.mutex() == nullptr, "[test] a moved-from shared_lock holds no mutex");
+
+		cstd::shared_mutex* const released = moved.release();
+
+		CSTD_ASSERT(released == &device && !moved.owns_lock(), "[test] shared_lock release hands back the mutex");
+		released->unlock_shared();
+	}
+
+	{
+		cstd::shared_lock<cstd::shared_mutex> empty;
+		CSTD_ASSERT(!empty.owns_lock() && empty.mutex() == nullptr, "[test] default shared_lock owns nothing");
+
+		cstd::shared_lock<cstd::shared_mutex> reader(device);
+		empty.swap(reader);
+
+		CSTD_ASSERT(empty.owns_lock() && !reader.owns_lock(), "[test] shared_lock swap exchanges ownership");
+	}
+
+	// lock_guard drives the exclusive side of a shared_mutex.
+	{
+		cstd::lock_guard<cstd::shared_mutex> writer(device);
+		CSTD_ASSERT(!device.try_lock_shared(), "[test] lock_guard takes a shared_mutex exclusively");
+	}
+
+	CSTD_ASSERT(device.try_lock(), "[test] lock_guard releases a shared_mutex");
+	device.unlock();
+}
+
 static void test_static_ring_buffer_zero_init()
 {
 	// Value-initialization (= {}) zero-fills all members, producing a valid empty buffer.
@@ -2534,6 +2908,11 @@ cstd::int32_t main()
 	test_static_ring_buffer_comparisons();
 	test_static_ring_buffer_lifetime();
 	test_static_ring_buffer_zero_init();
+	test_bitset();
+	test_bitset_constexpr();
+	test_from_chars();
+	test_views();
+	test_shared_mutex();
 
 	*owner = 7;
 

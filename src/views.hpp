@@ -126,15 +126,17 @@ namespace cstd::views
 		{
 			return composed_closure<Left, Right>(cstd::move(left), cstd::move(right));
 		}
-	}
 
-	// Pipe a range into a closure: range | closure -> closure(range)
-	template <class Range, class Closure,
-		class = enable_if_t<!is_base_of_v<detail::adaptor_closure_base, decay_t<Range>>>,
-		class = enable_if_t<is_base_of_v<detail::adaptor_closure_base, decay_t<Closure>>>>
-	[[nodiscard]] constexpr auto operator|(Range&& range, Closure&& closure)
-	{
-		return closure(static_cast<Range&&>(range));
+		// Pipe a range into a closure: range | closure -> closure(range).  This lives in `detail`
+		// alongside the closure types so argument-dependent lookup finds it from the closure operand
+		// whatever namespace the range comes from.
+		template <class Range, class Closure,
+			class = enable_if_t<!is_base_of_v<adaptor_closure_base, decay_t<Range>>>,
+			class = enable_if_t<is_base_of_v<adaptor_closure_base, decay_t<Closure>>>>
+		[[nodiscard]] constexpr auto operator|(Range&& range, Closure&& closure)
+		{
+			return closure(static_cast<Range&&>(range));
+		}
 	}
 
 	// ---- transform_view ----

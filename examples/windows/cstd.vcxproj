@@ -160,6 +160,7 @@
     <ClInclude Include="..\..\src\exception.hpp" />
     <ClInclude Include="..\..\src\expected.hpp" />
     <ClInclude Include="..\..\src\bitset.hpp" />
+    <ClInclude Include="..\..\src\charconv.hpp" />
     <ClInclude Include="..\..\src\flat_map.hpp" />
     <ClInclude Include="..\..\src\function.hpp" />
     <ClInclude Include="..\..\src\list.hpp" />
@@ -182,6 +183,7 @@
     <ClInclude Include="..\..\src\utility.hpp" />
     <ClInclude Include="..\..\src\limits.hpp" />
     <ClInclude Include="..\..\src\vector.hpp" />
+    <ClInclude Include="..\..\src\views.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

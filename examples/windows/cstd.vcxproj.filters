@@ -53,6 +53,12 @@
     <ClInclude Include="..\..\src\bitset.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\charconv.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\views.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\flat_map.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

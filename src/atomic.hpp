@@ -25,7 +25,7 @@ extern "C"
 	char    _InterlockedCompareExchange8 (char volatile*,    char,    char);
 	short   _InterlockedCompareExchange16(short volatile*,   short,   short);
 	long    _InterlockedCompareExchange  (long volatile*,    long,    long);
-	__int64 _InterlockedCompareExchange64(__int64 volatile*, __int64, __int64);
+	long long _InterlockedCompareExchange64(long long volatile*, long long, long long);
 
 	void _mm_pause(void);
 	void _mm_mfence(void);
@@ -306,8 +306,8 @@ namespace cstd
 			else
 			{
 				return static_cast<bits_type>(_InterlockedCompareExchange64(
-					reinterpret_cast<__int64 volatile*>(address),
-					static_cast<__int64>(desired), static_cast<__int64>(expected)));
+					reinterpret_cast<long long volatile*>(address),
+					static_cast<long long>(desired), static_cast<long long>(expected)));
 			}
 		}
 

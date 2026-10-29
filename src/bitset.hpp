@@ -4,6 +4,39 @@
 
 namespace cstd
 {
+	namespace detail
+	{
+		// Bit counting without the GCC/Clang builtins, which MSVC does not provide (its own popcount
+		// and bit-scan intrinsics are not usable in constant evaluation), so bitset stays constexpr on
+		// every compiler.
+		[[nodiscard]] constexpr int popcount64(uint64_t value) noexcept
+		{
+#if defined(__GNUC__) || defined(__clang__)
+			return __builtin_popcountll(value);
+#else
+			value -= (value >> 1) & 0x5555555555555555ull;
+			value = (value & 0x3333333333333333ull) + ((value >> 2) & 0x3333333333333333ull);
+			value = (value + (value >> 4)) & 0x0f0f0f0f0f0f0f0full;
+			return static_cast<int>((value * 0x0101010101010101ull) >> 56);
+#endif
+		}
+
+		// Index of the lowest set bit, or 64 when value is zero.
+		[[nodiscard]] constexpr int countr_zero64(const uint64_t value) noexcept
+		{
+			if (value == 0)
+			{
+				return 64;
+			}
+#if defined(__GNUC__) || defined(__clang__)
+			return __builtin_ctzll(value);
+#else
+			// Isolate the lowest set bit, then count the bits below it.
+			return popcount64((value & (~value + 1)) - 1);
+#endif
+		}
+	}
+
 	// Fixed-size bit array (a std::bitset analogue) over native 64-bit words, with one addition
 	// std::bitset lacks: iteration that visits only the *set* bits (the equivalent of the Linux
 	// kernel's for_each_set_bit). Bit i lives in word i / 64 at offset i % 64; the unused high bits of
@@ -95,7 +128,7 @@ namespace cstd
 			size_t total = 0;
 			for (size_t i = 0; i < word_count; ++i)
 			{
-				total += static_cast<size_t>(__builtin_popcountll(words_[i]));
+				total += static_cast<size_t>(detail::popcount64(words_[i]));
 			}
 			return total;
 		}
@@ -270,7 +303,7 @@ namespace cstd
 				cur = words_[wi];
 			}
 
-			const size_t bit = wi * bits_per_word + static_cast<size_t>(__builtin_ctzll(cur));
+			const size_t bit = wi * bits_per_word + static_cast<size_t>(detail::countr_zero64(cur));
 			return bit < N ? bit : N;
 		}
 

@@ -2,7 +2,9 @@
 
 namespace cstd
 {
-#if defined(_MSC_VER)
+    // MSVC and Clang spell this __is_trivially_destructible; GCC still only has the older
+    // __has_trivial_destructor, which Clang warns about as deprecated.
+#if defined(_MSC_VER) || defined(__clang__)
     template <class T>
     inline constexpr bool is_trivially_destructible_v = __is_trivially_destructible(T);
 #else
