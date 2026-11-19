@@ -151,4 +151,18 @@ namespace cstd
 
 		return { pos, 0 };
 	}
+
+	template <class T = int>
+	[[nodiscard]] constexpr optional<T> to_int( const string_view text, const int base = 10 ) noexcept
+	{
+		T value {};
+		const auto result = from_chars( text.data(), text.data() + text.size(), value, base );
+
+		if ( result.ec != 0 || result.ptr != text.data() + text.size() )
+		{
+			return nullopt;
+		}
+
+		return value;
+	}
 }
