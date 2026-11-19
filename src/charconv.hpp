@@ -1,6 +1,8 @@
 #pragma once
 #include "types.hpp"
 #include "type_traits.hpp"
+#include "optional.hpp"
+#include "string_view.hpp"
 
 namespace cstd
 {
